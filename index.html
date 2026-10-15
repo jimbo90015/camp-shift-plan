@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>露營場全日排班流程</title>
+<style>
+:root{
+  --bg:#f7f6f3; --panel:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e2dfd8; --line2:#efece6;
+  --prep:#c0652c; --serve:#b8912a; --clean:#2f8f6f; --room:#3b7bbf;
+  --shuttle:#c23a4e; --desk:#7b5fb8; --bar:#b4477d; --night:#5a6472; --rest:#9a958c;
+  --garden:#5f8c3a; --spray:#8a7320; --outdoor:#4a9ea8;
+  --warn:#b4541a; --warnbg:#fdf2e6;
+  --ok:#2f7d55; --okbg:#eef7f1;
+  --off:#d9d4ca;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#171614; --panel:#201f1c; --ink:#ece9e3; --muted:#9d988e; --line:#34322d; --line2:#2a2825;
+  --warn:#e2975c; --warnbg:#2b2118; --ok:#6fc296; --okbg:#1a251f; --off:#4a463f;
+}}
+:root[data-theme="dark"]{ --bg:#171614; --panel:#201f1c; --ink:#ece9e3; --muted:#9d988e; --line:#34322d; --line2:#2a2825; --warn:#e2975c; --warnbg:#2b2118; --ok:#6fc296; --okbg:#1a251f; --off:#4a463f; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:40px 16px 80px}
+header h1{font-size:1.9rem;margin:0 0 6px;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);font-size:.92rem}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:104px}
+.stat b{display:block;font-size:1.35rem;line-height:1.2}
+.stat span{font-size:.76rem;color:var(--muted)}
+h2{font-size:1.2rem;margin:48px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:.98rem;margin:26px 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.card h3{margin-top:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;font-size:1.02rem}
+.card h3 .t{font-weight:400;color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.77rem;letter-spacing:.03em;border-bottom:1px solid var(--line)}
+td.time{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted);width:106px}
+td.who{white-space:nowrap;width:98px;font-weight:600;font-size:.82rem}
+tbody tr:last-child td{border-bottom:none}
+tfoot td{border-top:1px solid var(--line);font-weight:700;border-bottom:none}
+.num{font-variant-numeric:tabular-nums}
+tr.hl td{background:var(--warnbg)}
+tr.okrow td{background:var(--okbg)}
+
+.gantt{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 16px;overflow-x:auto}
+.gi{min-width:1320px}
+.row{display:grid;grid-template-columns:118px 1fr;align-items:center;gap:8px;margin-bottom:4px}
+.lab{font-size:.78rem;text-align:right;color:var(--ink);white-space:nowrap;overflow:hidden}
+.lab small{color:var(--muted);font-weight:400}
+.track{display:grid;grid-template-columns:repeat(50,1fr);height:26px;
+  background:repeating-linear-gradient(to right,transparent 0,transparent calc(8% - 1px),var(--line2) calc(8% - 1px),var(--line2) 8%)}
+.b{border-radius:4px;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;
+  padding:0 3px;white-space:nowrap;overflow:hidden;margin:1px 1px;letter-spacing:.02em}
+.hdr{display:grid;grid-template-columns:repeat(25,1fr);font-size:.68rem;color:var(--muted);
+  margin-bottom:4px;font-variant-numeric:tabular-nums}
+.hdr span{text-align:left;padding-left:1px}
+.grpname{font-size:.72rem;color:var(--muted);letter-spacing:.06em;margin:14px 0 4px;padding-left:4px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.lg{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--muted)}
+.sw{width:14px;height:11px;border-radius:3px;display:inline-block}
+.note{font-size:.84rem;color:var(--muted);margin:10px 0 0}
+
+.roster{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 16px;overflow-x:auto}
+.rg{min-width:900px;border-collapse:collapse;font-size:.72rem;width:100%}
+.rg th,.rg td{padding:0;border:none;text-align:center}
+.rg th.d{font-weight:400;color:var(--muted);font-size:.64rem;padding-bottom:4px;width:2.7%}
+.rg td.p{text-align:right;padding-right:10px;font-size:.76rem;white-space:nowrap;width:86px;font-weight:600}
+.rg td.c{height:22px}
+.rg td.c i{display:block;height:18px;margin:2px 1px;border-radius:3px;background:var(--line2)}
+.rg td.c.off i{background:var(--off)}
+.rg td.c.cl i{background:repeating-linear-gradient(45deg,var(--off),var(--off) 3px,transparent 3px,transparent 6px)}
+.rg tr.sum td.c{font-variant-numeric:tabular-nums;font-size:.7rem;color:var(--muted);padding-top:6px}
+.rg tr.sum td.c.six{color:var(--warn);font-weight:700}
+.rg tr.sum td.c.sev{color:var(--ok);font-weight:700}
+.rg tr.sum td.c.mow{color:var(--garden);font-size:.8rem;line-height:1}
+.rg-all{min-width:980px}
+.rg-all td.p.gl{color:var(--muted);font-weight:400;font-size:.72rem;letter-spacing:.04em;
+  padding-top:7px;cursor:help}
+.rg-all th.d.wk{color:var(--shuttle);font-weight:600}
+.rg-all tr.sum td.c{padding-top:3px;padding-bottom:3px}
+.rg-all tr.sum td.p{font-weight:400;color:var(--muted);font-size:.72rem}
+.rg-all tr.gap td{height:7px}
+.rg tr.gap td{height:10px}
+
+ul{margin:6px 0;padding-left:20px}
+li{margin:3px 0}
+.warn{background:var(--warnbg);border:1px solid var(--line);border-left:4px solid var(--warn);
+  border-radius:10px;padding:16px 20px;margin-bottom:12px}
+.warn h3{margin:0 0 6px;color:var(--warn);font-size:.95rem}
+.warn p{margin:0 0 6px;font-size:.88rem}
+.warn p:last-child{margin-bottom:0}
+.good{background:var(--okbg);border:1px solid var(--line);border-left:4px solid var(--ok);
+  border-radius:10px;padding:16px 20px;margin-bottom:12px}
+.good h3{margin:0 0 6px;color:var(--ok);font-size:.95rem}
+.good p{margin:0 0 6px;font-size:.88rem}
+.good p:last-child{margin-bottom:0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+footer{margin-top:50px;font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media print{ body{background:#fff} .wrap{max-width:none} .gi,.rg{min-width:0} }
+
+/* ---- 可點擊流程圖 ---- */
+.c-prep{background:var(--prep)} .c-serve{background:var(--serve)} .c-clean{background:var(--clean)}
+.c-room{background:var(--room)} .c-outdoor{background:var(--outdoor)} .c-shuttle{background:var(--shuttle)}
+.c-desk{background:var(--desk)} .c-garden{background:var(--garden)} .c-spray{background:var(--spray)}
+.c-bar{background:var(--bar)} .c-night{background:var(--night)} .c-rest{background:var(--rest)}
+.gi .row{margin-bottom:5px}
+.gi .track{height:30px}
+.b{cursor:pointer;transition:filter .12s;border:1.5px solid transparent}
+.b:hover{filter:brightness(1.14)}
+.b:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.b.sel{border-color:var(--ink);filter:brightness(1.14)}
+.b.tight{position:relative}
+.b.tight::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;
+  border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.35)}
+.sw.tightkey{background:var(--muted);position:relative}
+.sw.tightkey::after{content:"";position:absolute;right:1px;top:1px;width:4px;height:4px;
+  border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.bp-tight{margin:12px 0 0;padding:10px 14px;background:var(--bg);border:1px solid var(--line);
+  border-left:3px solid var(--ink);border-radius:6px;font-size:.85rem}
+button.lab{background:none;border:none;font:inherit;color:var(--ink);cursor:pointer;
+  text-align:right;padding:0 2px;border-radius:5px;font-size:.78rem;white-space:nowrap;overflow:hidden}
+button.lab:hover{background:var(--line2)}
+button.lab small{color:var(--muted)}
+.lab-h{height:1px}
+.grpname span{text-transform:none;letter-spacing:0}
+.row.hide,.grpname.hide{display:none}
+.sctabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.sctab{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:9px 16px;cursor:pointer;font:inherit;color:var(--ink);text-align:left;line-height:1.3}
+.sctab b{display:block;font-size:.9rem;font-weight:600}
+.sctab span{font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.sctab:hover{background:var(--line2)}
+.sctab.on{border-color:var(--ink);background:var(--line2)}
+.scbar{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:12px 16px;margin-bottom:12px;font-size:.86rem}
+.scbar .k{display:inline-block;margin-right:16px;color:var(--muted);font-size:.8rem}
+.scbar .k b{color:var(--ink);font-variant-numeric:tabular-nums}
+.scbar p{margin:7px 0 0;color:var(--muted)}
+.bpanel{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;margin-top:14px;min-height:112px}
+.bpanel.empty{display:flex;align-items:center;justify-content:center}
+.bp-hint{color:var(--muted);font-size:.86rem}
+.bp-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+.bp-cat{display:inline-flex;align-items:center;gap:6px;font-size:.73rem;color:#fff;
+  padding:2px 9px;border-radius:5px}
+.bp-who,.bp-time{font-size:.8rem;color:var(--muted)}
+.bp-time{font-variant-numeric:tabular-nums}
+.bpanel h4{margin:0 0 8px;font-size:1.06rem;letter-spacing:-.01em}
+.bpanel ul{margin:0;padding-left:19px;font-size:.89rem}
+.bpanel ul li{margin:4px 0}
+.bp-note{margin:12px 0 0;padding:10px 14px;background:var(--warnbg);border-left:3px solid var(--warn);
+  border-radius:6px;font-size:.85rem}
+.bp-day{list-style:none;padding:0;margin:0;font-size:.87rem}
+.bp-day li{display:grid;grid-template-columns:118px 1fr;gap:10px;padding:5px 0;
+  border-bottom:1px solid var(--line2)}
+.bp-day li:last-child{border-bottom:none}
+.bp-day b{font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.bp-day a{color:var(--ink);text-decoration:none;cursor:pointer;border-bottom:1px solid var(--line)}
+.bp-day a:hover{border-bottom-color:var(--ink)}
+@media (max-width:700px){ .bp-day li{grid-template-columns:1fr;gap:0} }
+.print-only{display:block}          /* JS 沒跑時，方塊點不開，改用這份文字明細 */
+body.js .print-only{display:none}
+body:not(.js) .sctabs,body:not(.js) .scbar,body:not(.js) #bpanel{display:none}
+@media print{
+  @page{size:A4 landscape;margin:9mm}
+  body{background:#fff;font-size:11px;line-height:1.5}
+  .wrap{padding:0;max-width:none}
+  .modnav,.modfoot,.sctabs,.scbar,#bpanel{display:none!important}
+  .mod{display:block!important;page-break-before:always}
+  .mod:first-of-type{page-break-before:auto}
+  .print-only{display:block!important}
+  .gantt,.roster{overflow:visible;border:none;padding:0}
+  .gi{min-width:0}
+  .rg-all{min-width:0;font-size:8px}
+  .row.hide,.grpname.hide{display:flex!important}
+  .row.hide{display:grid!important}
+  .b{font-size:7px;border:none}
+  .gi .track{height:20px}
+  h2{page-break-after:avoid}
+  .apx,.good,.warn{page-break-inside:avoid}
+  .card{page-break-inside:auto}
+  .card h3,.good h3,.warn h3{page-break-after:avoid}
+  tr{page-break-inside:avoid}
+  .card,.good,.warn{margin-bottom:10px;padding:12px 14px}
+  .stats{margin:14px 0 18px}
+  h2{margin:0 0 10px;font-size:15px}
+  table{font-size:9.5px}
+  .apx-g{font-size:10px;color:var(--muted);letter-spacing:.06em;margin:16px 0 4px;page-break-after:avoid}
+  .apx{width:100%;border-collapse:collapse;margin-bottom:10px;border:1px solid var(--line)}
+  .apx th{background:var(--line2);font-size:10px;padding:4px 8px;text-align:left}
+  .apx td{padding:4px 8px;border-top:1px solid var(--line2);vertical-align:top}
+  .apx-time{white-space:nowrap;width:90px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .apx ul{margin:2px 0 0;padding-left:16px}
+  .apx-t,.apx-n{margin-top:3px;font-size:9px;color:var(--muted)}
+  .apx-t{font-weight:600;color:#000}
+}
+
+/* ---- 模塊切換 ---- */
+.modnav{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:6px;
+  background:var(--bg);padding:12px 0 14px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.navb{background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:6px 14px;font:inherit;font-size:.82rem;color:var(--muted);cursor:pointer;white-space:nowrap}
+.navb:hover{background:var(--line2);color:var(--ink)}
+.navb.on{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600}
+.mod{display:block}                 /* 預設全顯示：JS 沒跑（如平板的檔案預覽）也看得到全部內容 */
+body.js .mod{display:none}
+body.js .mod.on{display:block}
+body:not(.js) .modnav,body:not(.js) .modfoot{display:none}
+.mod>h2:first-child{margin-top:24px}
+.modfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  margin-top:40px;padding-top:18px;border-top:1px solid var(--line)}
+.pagb{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:9px 18px;font:inherit;font-size:.86rem;color:var(--ink);cursor:pointer}
+.pagb:hover{background:var(--line2)}
+@media print{ .modnav,.modfoot{display:none} .mod{display:block!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>露營場全日排班流程</h1>
+  <p>31 帳 × 4 人 ＝ 滿帳 124 人 · 22 個職務位 · 房務含帳外 · 接駁車 5 台 · 櫃檯早晚班各配替補工讀 · 06:30 ~ 隔日 06:30 全覆蓋</p>
+</header>
+
+<div class="stats">
+  <div class="stat"><b>31</b><span>帳數</span></div>
+  <div class="stat"><b>22</b><span>職務位</span></div>
+  <div class="stat"><b>5</b><span>接駁車台數</span></div>
+  <div class="stat"><b>19.8</b><span>分鐘／帳（兩人一組）</span></div>
+  <div class="stat"><b>26</b><span>分鐘緩衝</span></div>
+</div>
+
+<nav class="modnav"><button class="navb" data-m="m1">總覽</button><button class="navb" data-m="m2">輪休表</button><button class="navb" data-m="m3">流程圖</button><button class="navb" data-m="m4">房務試算</button><button class="navb" data-m="m5">接駁車</button><button class="navb" data-m="m6">園藝</button><button class="navb" data-m="m7">交接點</button><button class="navb" data-m="m8">缺席代班</button><button class="navb" data-m="m9">決策紀錄</button><button class="navb" data-m="m10">待辦</button></nav>
+
+<section class="mod" id="m1" data-t="總覽">
+<h2>一、編制總覽</h2>
+
+<div class="card">
+  <h3>22 個職務位 <span class="t">正職 18 ＋ 工讀 4</span></h3>
+<table>
+  <thead><tr><th style="width:140px">組別</th><th style="width:150px">代號</th><th style="width:124px">班別時間</th><th style="width:70px">人數</th><th style="width:80px">類型</th><th>日常在班</th></tr></thead>
+  <tbody>
+    <tr><td><b>廚房組</b></td><td>K1 K2 K3</td><td class="time">06:30–15:30</td><td class="num">3</td><td>正職</td><td class="num">2–3</td></tr>
+    <tr><td><b>房務早班</b></td><td>H1 H2 H3 H4</td><td class="time">07:00–16:00</td><td class="num">4</td><td>正職</td><td class="num">3–4</td></tr>
+    <tr><td><b>園藝外場</b></td><td>G1</td><td class="time">07:00–16:00</td><td class="num">1</td><td>正職</td><td class="num">0–1</td></tr>
+    <tr><td><b>櫃檯早班</b></td><td>F1 F2</td><td class="time">08:00–17:00</td><td class="num">2</td><td>正職</td><td class="num">1–2</td></tr>
+    <tr><td style="color:var(--muted)">└ 替補</td><td>PM1</td><td class="time">08:00–13:00</td><td class="num">1</td><td>工讀</td><td class="num">單人日 12 天</td></tr>
+    <tr><td><b>房務中班</b></td><td>M1 M2 M3 M4</td><td class="time">11:00–20:00</td><td class="num">4</td><td>正職</td><td class="num">3–4</td></tr>
+    <tr><td><b>櫃檯晚班</b></td><td>N1 N2</td><td class="time">13:00–22:00</td><td class="num">2</td><td>正職</td><td class="num">1–2</td></tr>
+    <tr><td style="color:var(--muted)">└ 替補</td><td>PM2</td><td class="time">19:00–22:00</td><td class="num">1</td><td>工讀</td><td class="num">單人日 12 天</td></tr>
+    <tr><td><b>工讀機動組</b></td><td>P1</td><td class="time">16:00–22:00</td><td class="num">1</td><td>工讀</td><td class="num">班位，每天</td></tr>
+    <tr><td style="color:var(--muted)">└ 內場支援</td><td>P2</td><td class="time">17:00–22:00</td><td class="num">1</td><td>工讀</td><td class="num">班位，每天</td></tr>
+    <tr><td><b>夜班</b></td><td>D1 D2</td><td class="time">22:00–06:30</td><td class="num">2</td><td>正職</td><td class="num">1</td></tr>
+  </tbody>
+  <tfoot><tr><td colspan="3">合計</td><td class="num">22</td><td colspan="2">正職 <b>18</b> 人每人月休 8 天（含 2 天休園）；夜班與工讀為輪班制。工讀合計約 <b>404 小時／月</b>（P1 168 ＋ P2 140 ＋ PM1 60 ＋ PM2 36）</td></tr></tfoot>
+</table>
+</div>
+
+<div class="card">
+  <h3>兩種日子 <span class="t">這兩個名字只講房務人數</span></h3>
+<table>
+  <thead><tr><th style="width:150px">名稱</th><th style="width:170px">房務在班</th><th style="width:96px">天數／月</th><th style="width:110px">房務完工</th><th>這天適合安排什麼</th></tr></thead>
+  <tbody>
+    <tr><td><b>常態日</b></td><td>6 人 ＝ 3 組</td><td class="num">20 天</td><td class="num">14:34</td><td>照常運作，沒有餘裕做額外的事</td></tr>
+    <tr class="okrow"><td><b>餘裕日</b></td><td>7 人 ＝ 3 組 ＋ 1 單人</td><td class="num">8 天</td><td class="num">13:59</td><td><b>園藝休假、割草、設備維修</b>都排這天</td></tr>
+    <tr><td><b>休園日</b></td><td>全員休</td><td class="num">2 天</td><td>—</td><td><b>噴藥</b>、深度清潔、盤點</td></tr>
+  </tbody>
+</table>
+  <p class="note">舊版叫「6 人日／7 人日」，改成這個名字是因為重點不是人數，而是<b>那天有沒有餘裕去做房務以外的事</b>。餘裕日多的那一個人不配對、專做帳外，所以反而是效率最高的。</p><p class="note"><b>這兩個名字只描述房務。</b>廚房、園藝也會有人休假，工作一樣要有人接 —— 完整的組合與代班方式見「缺席代班」頁。</p>
+</div>
+
+<div class="card">
+  <h3>一天的節奏</h3>
+<table>
+  <thead><tr><th style="width:118px">時刻</th><th>發生什麼</th></tr></thead>
+  <tbody>
+    <tr><td class="time">06:30</td><td>廚房開工（三位廚師輪守熱檯／冷檯／機動），夜班交班下班</td></tr>
+    <tr><td class="time">08:00–10:00</td><td>早餐 buffet</td></tr>
+    <tr><td class="time">10:00–11:00</td><td>收餐、<b>廚房當場洗早餐餐具</b>、整理餐廳、備車裝備品</td></tr>
+    <tr><td class="time">11:00–11:32</td><td><b>退房接駁</b>：5 台車、19 帳，回程載備品進場</td></tr>
+    <tr><td class="time">11:00–14:34</td><td><b>房務</b>：兩人一組，一帳做完才換下一帳</td></tr>
+    <tr><td class="time">15:00–17:00</td><td>下午茶 ＋ check-in 尖峰（先吃茶再進房）</td></tr>
+    <tr><td class="time">16:00</td><td>房務早班、園藝下班；工讀 P1 到崗收下午茶餐具（<b>只收不洗</b>）</td></tr>
+    <tr><td class="time">17:30–19:00</td><td>晚餐 第一段（約 62 人）；<b>P2 同時洗掉下午茶 124 份</b></td></tr>
+    <tr><td class="time">19:00–20:30</td><td>晚餐 第二段（另外 62 人）；<b>酒吧 19:00 開</b>；P2 洗第一段 62 份</td></tr>
+    <tr><td class="time">20:00</td><td>房務中班下班，工讀接手收尾</td></tr>
+    <tr><td class="time">20:30–22:00</td><td>收場、擦掃、廚具搬回廚房</td></tr>
+    <tr><td class="time">22:00–23:30</td><td>夜班洗晚餐第二段 62 份與廚具；酒吧打烊</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+  <h3>還沒確認的前提 <span class="t">共 4 項，全在「待辦」</span></h3>
+  <table>
+    <thead><tr><th style="width:230px">壓在什麼假設上</th><th>會影響什麼</th></tr></thead>
+    <tbody>
+      <tr><td>房內一帳 <b>27 分鐘</b>（我推的）</td><td>整條房務線。超過 33 分就做不完</td></tr>
+      <tr><td>接駁<b>一趟載走一帳</b> 4 人＋行李</td><td>要跑兩趟的話 5 台從 32 分變 64 分</td></tr>
+      <tr><td>洗碗機<b>一批幾件、幾分鐘</b></td><td>P2 在 90 分鐘內洗不洗得完下午茶的 124 份</td></tr>
+      
+      <tr><td>餐具<b>分品項的備量</b></td><td>備不夠第二段晚餐就會缺盤</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="modfoot"><span></span><button class="pagb" data-m="m2">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m2" data-t="輪休表">
+<h2>二、30 天輪休表（全員 22 人）</h2>
+<div class="roster">
+  <table class="rg rg-all">
+    <tr><td class="p"></td><th class="d">1</th><th class="d">2</th><th class="d">3</th><th class="d">4</th><th class="d">5</th><th class="d wk">6</th><th class="d wk">7</th><th class="d">8</th><th class="d">9</th><th class="d">10</th><th class="d">11</th><th class="d">12</th><th class="d wk">13</th><th class="d wk">14</th><th class="d">15</th><th class="d">16</th><th class="d">17</th><th class="d">18</th><th class="d">19</th><th class="d wk">20</th><th class="d wk">21</th><th class="d">22</th><th class="d">23</th><th class="d">24</th><th class="d">25</th><th class="d">26</th><th class="d wk">27</th><th class="d wk">28</th><th class="d">29</th><th class="d">30</th></tr>
+    <tr><td class="p gl" title="同日最多 1 人休">廚房組</td><td colspan="30"></td></tr>
+    <tr><td class="p">K1</td><td class="c off" title="K1 休（1 日）"><i></i></td><td class="c" title="K1 上班（2 日）"><i></i></td><td class="c" title="K1 上班（3 日）"><i></i></td><td class="c" title="K1 上班（4 日）"><i></i></td><td class="c" title="K1 上班（5 日）"><i></i></td><td class="c off" title="K1 休（6 日）"><i></i></td><td class="c" title="K1 上班（7 日）"><i></i></td><td class="c" title="K1 上班（8 日）"><i></i></td><td class="c" title="K1 上班（9 日）"><i></i></td><td class="c off" title="K1 休（10 日）"><i></i></td><td class="c" title="K1 上班（11 日）"><i></i></td><td class="c" title="K1 上班（12 日）"><i></i></td><td class="c" title="K1 上班（13 日）"><i></i></td><td class="c off" title="K1 休（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="K1 上班（17 日）"><i></i></td><td class="c" title="K1 上班（18 日）"><i></i></td><td class="c" title="K1 上班（19 日）"><i></i></td><td class="c off" title="K1 休（20 日）"><i></i></td><td class="c" title="K1 上班（21 日）"><i></i></td><td class="c" title="K1 上班（22 日）"><i></i></td><td class="c" title="K1 上班（23 日）"><i></i></td><td class="c" title="K1 上班（24 日）"><i></i></td><td class="c off" title="K1 休（25 日）"><i></i></td><td class="c" title="K1 上班（26 日）"><i></i></td><td class="c" title="K1 上班（27 日）"><i></i></td><td class="c" title="K1 上班（28 日）"><i></i></td><td class="c" title="K1 上班（29 日）"><i></i></td><td class="c" title="K1 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">K2</td><td class="c" title="K2 上班（1 日）"><i></i></td><td class="c" title="K2 上班（2 日）"><i></i></td><td class="c off" title="K2 休（3 日）"><i></i></td><td class="c" title="K2 上班（4 日）"><i></i></td><td class="c" title="K2 上班（5 日）"><i></i></td><td class="c" title="K2 上班（6 日）"><i></i></td><td class="c off" title="K2 休（7 日）"><i></i></td><td class="c" title="K2 上班（8 日）"><i></i></td><td class="c" title="K2 上班（9 日）"><i></i></td><td class="c" title="K2 上班（10 日）"><i></i></td><td class="c off" title="K2 休（11 日）"><i></i></td><td class="c" title="K2 上班（12 日）"><i></i></td><td class="c" title="K2 上班（13 日）"><i></i></td><td class="c" title="K2 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c off" title="K2 休（17 日）"><i></i></td><td class="c" title="K2 上班（18 日）"><i></i></td><td class="c" title="K2 上班（19 日）"><i></i></td><td class="c" title="K2 上班（20 日）"><i></i></td><td class="c off" title="K2 休（21 日）"><i></i></td><td class="c" title="K2 上班（22 日）"><i></i></td><td class="c" title="K2 上班（23 日）"><i></i></td><td class="c" title="K2 上班（24 日）"><i></i></td><td class="c" title="K2 上班（25 日）"><i></i></td><td class="c" title="K2 上班（26 日）"><i></i></td><td class="c off" title="K2 休（27 日）"><i></i></td><td class="c" title="K2 上班（28 日）"><i></i></td><td class="c" title="K2 上班（29 日）"><i></i></td><td class="c" title="K2 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">K3</td><td class="c" title="K3 上班（1 日）"><i></i></td><td class="c off" title="K3 休（2 日）"><i></i></td><td class="c" title="K3 上班（3 日）"><i></i></td><td class="c" title="K3 上班（4 日）"><i></i></td><td class="c off" title="K3 休（5 日）"><i></i></td><td class="c" title="K3 上班（6 日）"><i></i></td><td class="c" title="K3 上班（7 日）"><i></i></td><td class="c" title="K3 上班（8 日）"><i></i></td><td class="c off" title="K3 休（9 日）"><i></i></td><td class="c" title="K3 上班（10 日）"><i></i></td><td class="c" title="K3 上班（11 日）"><i></i></td><td class="c off" title="K3 休（12 日）"><i></i></td><td class="c" title="K3 上班（13 日）"><i></i></td><td class="c" title="K3 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="K3 上班（17 日）"><i></i></td><td class="c off" title="K3 休（18 日）"><i></i></td><td class="c" title="K3 上班（19 日）"><i></i></td><td class="c" title="K3 上班（20 日）"><i></i></td><td class="c" title="K3 上班（21 日）"><i></i></td><td class="c" title="K3 上班（22 日）"><i></i></td><td class="c off" title="K3 休（23 日）"><i></i></td><td class="c" title="K3 上班（24 日）"><i></i></td><td class="c" title="K3 上班（25 日）"><i></i></td><td class="c" title="K3 上班（26 日）"><i></i></td><td class="c" title="K3 上班（27 日）"><i></i></td><td class="c" title="K3 上班（28 日）"><i></i></td><td class="c" title="K3 上班（29 日）"><i></i></td><td class="c" title="K3 上班（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr><td class="p gl" title="同日最多 1 人休">房務早班</td><td colspan="30"></td></tr>
+    <tr><td class="p">H1</td><td class="c off" title="H1 休（1 日）"><i></i></td><td class="c" title="H1 上班（2 日）"><i></i></td><td class="c" title="H1 上班（3 日）"><i></i></td><td class="c" title="H1 上班（4 日）"><i></i></td><td class="c off" title="H1 休（5 日）"><i></i></td><td class="c" title="H1 上班（6 日）"><i></i></td><td class="c" title="H1 上班（7 日）"><i></i></td><td class="c" title="H1 上班（8 日）"><i></i></td><td class="c" title="H1 上班（9 日）"><i></i></td><td class="c off" title="H1 休（10 日）"><i></i></td><td class="c" title="H1 上班（11 日）"><i></i></td><td class="c" title="H1 上班（12 日）"><i></i></td><td class="c" title="H1 上班（13 日）"><i></i></td><td class="c" title="H1 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c off" title="H1 休（17 日）"><i></i></td><td class="c" title="H1 上班（18 日）"><i></i></td><td class="c" title="H1 上班（19 日）"><i></i></td><td class="c" title="H1 上班（20 日）"><i></i></td><td class="c off" title="H1 休（21 日）"><i></i></td><td class="c" title="H1 上班（22 日）"><i></i></td><td class="c" title="H1 上班（23 日）"><i></i></td><td class="c" title="H1 上班（24 日）"><i></i></td><td class="c" title="H1 上班（25 日）"><i></i></td><td class="c off" title="H1 休（26 日）"><i></i></td><td class="c" title="H1 上班（27 日）"><i></i></td><td class="c" title="H1 上班（28 日）"><i></i></td><td class="c" title="H1 上班（29 日）"><i></i></td><td class="c" title="H1 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">H2</td><td class="c" title="H2 上班（1 日）"><i></i></td><td class="c off" title="H2 休（2 日）"><i></i></td><td class="c" title="H2 上班（3 日）"><i></i></td><td class="c" title="H2 上班（4 日）"><i></i></td><td class="c" title="H2 上班（5 日）"><i></i></td><td class="c off" title="H2 休（6 日）"><i></i></td><td class="c" title="H2 上班（7 日）"><i></i></td><td class="c" title="H2 上班（8 日）"><i></i></td><td class="c" title="H2 上班（9 日）"><i></i></td><td class="c" title="H2 上班（10 日）"><i></i></td><td class="c off" title="H2 休（11 日）"><i></i></td><td class="c" title="H2 上班（12 日）"><i></i></td><td class="c" title="H2 上班（13 日）"><i></i></td><td class="c" title="H2 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="H2 上班（17 日）"><i></i></td><td class="c off" title="H2 休（18 日）"><i></i></td><td class="c" title="H2 上班（19 日）"><i></i></td><td class="c" title="H2 上班（20 日）"><i></i></td><td class="c" title="H2 上班（21 日）"><i></i></td><td class="c off" title="H2 休（22 日）"><i></i></td><td class="c" title="H2 上班（23 日）"><i></i></td><td class="c" title="H2 上班（24 日）"><i></i></td><td class="c" title="H2 上班（25 日）"><i></i></td><td class="c" title="H2 上班（26 日）"><i></i></td><td class="c off" title="H2 休（27 日）"><i></i></td><td class="c" title="H2 上班（28 日）"><i></i></td><td class="c" title="H2 上班（29 日）"><i></i></td><td class="c" title="H2 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">H3</td><td class="c" title="H3 上班（1 日）"><i></i></td><td class="c" title="H3 上班（2 日）"><i></i></td><td class="c off" title="H3 休（3 日）"><i></i></td><td class="c" title="H3 上班（4 日）"><i></i></td><td class="c" title="H3 上班（5 日）"><i></i></td><td class="c" title="H3 上班（6 日）"><i></i></td><td class="c" title="H3 上班（7 日）"><i></i></td><td class="c off" title="H3 休（8 日）"><i></i></td><td class="c" title="H3 上班（9 日）"><i></i></td><td class="c" title="H3 上班（10 日）"><i></i></td><td class="c" title="H3 上班（11 日）"><i></i></td><td class="c off" title="H3 休（12 日）"><i></i></td><td class="c" title="H3 上班（13 日）"><i></i></td><td class="c" title="H3 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="H3 上班（17 日）"><i></i></td><td class="c" title="H3 上班（18 日）"><i></i></td><td class="c off" title="H3 休（19 日）"><i></i></td><td class="c" title="H3 上班（20 日）"><i></i></td><td class="c" title="H3 上班（21 日）"><i></i></td><td class="c" title="H3 上班（22 日）"><i></i></td><td class="c" title="H3 上班（23 日）"><i></i></td><td class="c off" title="H3 休（24 日）"><i></i></td><td class="c" title="H3 上班（25 日）"><i></i></td><td class="c" title="H3 上班（26 日）"><i></i></td><td class="c" title="H3 上班（27 日）"><i></i></td><td class="c off" title="H3 休（28 日）"><i></i></td><td class="c" title="H3 上班（29 日）"><i></i></td><td class="c" title="H3 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">H4</td><td class="c" title="H4 上班（1 日）"><i></i></td><td class="c" title="H4 上班（2 日）"><i></i></td><td class="c" title="H4 上班（3 日）"><i></i></td><td class="c off" title="H4 休（4 日）"><i></i></td><td class="c" title="H4 上班（5 日）"><i></i></td><td class="c" title="H4 上班（6 日）"><i></i></td><td class="c" title="H4 上班（7 日）"><i></i></td><td class="c" title="H4 上班（8 日）"><i></i></td><td class="c off" title="H4 休（9 日）"><i></i></td><td class="c" title="H4 上班（10 日）"><i></i></td><td class="c" title="H4 上班（11 日）"><i></i></td><td class="c" title="H4 上班（12 日）"><i></i></td><td class="c off" title="H4 休（13 日）"><i></i></td><td class="c" title="H4 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="H4 上班（17 日）"><i></i></td><td class="c" title="H4 上班（18 日）"><i></i></td><td class="c" title="H4 上班（19 日）"><i></i></td><td class="c off" title="H4 休（20 日）"><i></i></td><td class="c" title="H4 上班（21 日）"><i></i></td><td class="c" title="H4 上班（22 日）"><i></i></td><td class="c" title="H4 上班（23 日）"><i></i></td><td class="c" title="H4 上班（24 日）"><i></i></td><td class="c off" title="H4 休（25 日）"><i></i></td><td class="c" title="H4 上班（26 日）"><i></i></td><td class="c" title="H4 上班（27 日）"><i></i></td><td class="c" title="H4 上班（28 日）"><i></i></td><td class="c off" title="H4 休（29 日）"><i></i></td><td class="c" title="H4 上班（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr><td class="p gl" title="絕不同日休。單人日由工讀 PM1 頂上">櫃檯早班</td><td colspan="30"></td></tr>
+    <tr><td class="p">F1</td><td class="c off" title="F1 休（1 日）"><i></i></td><td class="c" title="F1 上班（2 日）"><i></i></td><td class="c" title="F1 上班（3 日）"><i></i></td><td class="c" title="F1 上班（4 日）"><i></i></td><td class="c" title="F1 上班（5 日）"><i></i></td><td class="c off" title="F1 休（6 日）"><i></i></td><td class="c" title="F1 上班（7 日）"><i></i></td><td class="c" title="F1 上班（8 日）"><i></i></td><td class="c" title="F1 上班（9 日）"><i></i></td><td class="c" title="F1 上班（10 日）"><i></i></td><td class="c off" title="F1 休（11 日）"><i></i></td><td class="c" title="F1 上班（12 日）"><i></i></td><td class="c" title="F1 上班（13 日）"><i></i></td><td class="c" title="F1 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c off" title="F1 休（17 日）"><i></i></td><td class="c" title="F1 上班（18 日）"><i></i></td><td class="c" title="F1 上班（19 日）"><i></i></td><td class="c" title="F1 上班（20 日）"><i></i></td><td class="c" title="F1 上班（21 日）"><i></i></td><td class="c off" title="F1 休（22 日）"><i></i></td><td class="c" title="F1 上班（23 日）"><i></i></td><td class="c" title="F1 上班（24 日）"><i></i></td><td class="c" title="F1 上班（25 日）"><i></i></td><td class="c" title="F1 上班（26 日）"><i></i></td><td class="c off" title="F1 休（27 日）"><i></i></td><td class="c" title="F1 上班（28 日）"><i></i></td><td class="c" title="F1 上班（29 日）"><i></i></td><td class="c" title="F1 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">F2</td><td class="c" title="F2 上班（1 日）"><i></i></td><td class="c" title="F2 上班（2 日）"><i></i></td><td class="c" title="F2 上班（3 日）"><i></i></td><td class="c off" title="F2 休（4 日）"><i></i></td><td class="c" title="F2 上班（5 日）"><i></i></td><td class="c" title="F2 上班（6 日）"><i></i></td><td class="c" title="F2 上班（7 日）"><i></i></td><td class="c off" title="F2 休（8 日）"><i></i></td><td class="c" title="F2 上班（9 日）"><i></i></td><td class="c" title="F2 上班（10 日）"><i></i></td><td class="c" title="F2 上班（11 日）"><i></i></td><td class="c" title="F2 上班（12 日）"><i></i></td><td class="c off" title="F2 休（13 日）"><i></i></td><td class="c" title="F2 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="F2 上班（17 日）"><i></i></td><td class="c" title="F2 上班（18 日）"><i></i></td><td class="c" title="F2 上班（19 日）"><i></i></td><td class="c off" title="F2 休（20 日）"><i></i></td><td class="c" title="F2 上班（21 日）"><i></i></td><td class="c" title="F2 上班（22 日）"><i></i></td><td class="c" title="F2 上班（23 日）"><i></i></td><td class="c off" title="F2 休（24 日）"><i></i></td><td class="c" title="F2 上班（25 日）"><i></i></td><td class="c" title="F2 上班（26 日）"><i></i></td><td class="c" title="F2 上班（27 日）"><i></i></td><td class="c off" title="F2 休（28 日）"><i></i></td><td class="c" title="F2 上班（29 日）"><i></i></td><td class="c" title="F2 上班（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr><td class="p gl" title="休假日全部落在房務 7 人日">園藝外場</td><td colspan="30"></td></tr>
+    <tr><td class="p">G1</td><td class="c" title="G1 上班（1 日）"><i></i></td><td class="c" title="G1 上班（2 日）"><i></i></td><td class="c off" title="G1 休（3 日）"><i></i></td><td class="c" title="G1 上班（4 日）"><i></i></td><td class="c" title="G1 上班（5 日）"><i></i></td><td class="c" title="G1 上班（6 日）"><i></i></td><td class="c off" title="G1 休（7 日）"><i></i></td><td class="c" title="G1 上班（8 日）"><i></i></td><td class="c" title="G1 上班（9 日）"><i></i></td><td class="c" title="G1 上班（10 日）"><i></i></td><td class="c" title="G1 上班（11 日）"><i></i></td><td class="c" title="G1 上班（12 日）"><i></i></td><td class="c" title="G1 上班（13 日）"><i></i></td><td class="c off" title="G1 休（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="G1 上班（17 日）"><i></i></td><td class="c" title="G1 上班（18 日）"><i></i></td><td class="c off" title="G1 休（19 日）"><i></i></td><td class="c" title="G1 上班（20 日）"><i></i></td><td class="c" title="G1 上班（21 日）"><i></i></td><td class="c" title="G1 上班（22 日）"><i></i></td><td class="c" title="G1 上班（23 日）"><i></i></td><td class="c" title="G1 上班（24 日）"><i></i></td><td class="c" title="G1 上班（25 日）"><i></i></td><td class="c off" title="G1 休（26 日）"><i></i></td><td class="c" title="G1 上班（27 日）"><i></i></td><td class="c" title="G1 上班（28 日）"><i></i></td><td class="c" title="G1 上班（29 日）"><i></i></td><td class="c off" title="G1 休（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr><td class="p gl" title="同日最多 1 人休">房務中班</td><td colspan="30"></td></tr>
+    <tr><td class="p">M1</td><td class="c off" title="M1 休（1 日）"><i></i></td><td class="c" title="M1 上班（2 日）"><i></i></td><td class="c" title="M1 上班（3 日）"><i></i></td><td class="c" title="M1 上班（4 日）"><i></i></td><td class="c" title="M1 上班（5 日）"><i></i></td><td class="c off" title="M1 休（6 日）"><i></i></td><td class="c" title="M1 上班（7 日）"><i></i></td><td class="c" title="M1 上班（8 日）"><i></i></td><td class="c" title="M1 上班（9 日）"><i></i></td><td class="c" title="M1 上班（10 日）"><i></i></td><td class="c off" title="M1 休（11 日）"><i></i></td><td class="c" title="M1 上班（12 日）"><i></i></td><td class="c" title="M1 上班（13 日）"><i></i></td><td class="c" title="M1 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c off" title="M1 休（17 日）"><i></i></td><td class="c" title="M1 上班（18 日）"><i></i></td><td class="c" title="M1 上班（19 日）"><i></i></td><td class="c" title="M1 上班（20 日）"><i></i></td><td class="c" title="M1 上班（21 日）"><i></i></td><td class="c off" title="M1 休（22 日）"><i></i></td><td class="c" title="M1 上班（23 日）"><i></i></td><td class="c" title="M1 上班（24 日）"><i></i></td><td class="c" title="M1 上班（25 日）"><i></i></td><td class="c" title="M1 上班（26 日）"><i></i></td><td class="c off" title="M1 休（27 日）"><i></i></td><td class="c" title="M1 上班（28 日）"><i></i></td><td class="c" title="M1 上班（29 日）"><i></i></td><td class="c" title="M1 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">M2</td><td class="c" title="M2 上班（1 日）"><i></i></td><td class="c off" title="M2 休（2 日）"><i></i></td><td class="c" title="M2 上班（3 日）"><i></i></td><td class="c" title="M2 上班（4 日）"><i></i></td><td class="c" title="M2 上班（5 日）"><i></i></td><td class="c" title="M2 上班（6 日）"><i></i></td><td class="c off" title="M2 休（7 日）"><i></i></td><td class="c" title="M2 上班（8 日）"><i></i></td><td class="c" title="M2 上班（9 日）"><i></i></td><td class="c" title="M2 上班（10 日）"><i></i></td><td class="c" title="M2 上班（11 日）"><i></i></td><td class="c off" title="M2 休（12 日）"><i></i></td><td class="c" title="M2 上班（13 日）"><i></i></td><td class="c" title="M2 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="M2 上班（17 日）"><i></i></td><td class="c off" title="M2 休（18 日）"><i></i></td><td class="c" title="M2 上班（19 日）"><i></i></td><td class="c" title="M2 上班（20 日）"><i></i></td><td class="c" title="M2 上班（21 日）"><i></i></td><td class="c" title="M2 上班（22 日）"><i></i></td><td class="c off" title="M2 休（23 日）"><i></i></td><td class="c" title="M2 上班（24 日）"><i></i></td><td class="c" title="M2 上班（25 日）"><i></i></td><td class="c" title="M2 上班（26 日）"><i></i></td><td class="c" title="M2 上班（27 日）"><i></i></td><td class="c off" title="M2 休（28 日）"><i></i></td><td class="c" title="M2 上班（29 日）"><i></i></td><td class="c" title="M2 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">M3</td><td class="c" title="M3 上班（1 日）"><i></i></td><td class="c" title="M3 上班（2 日）"><i></i></td><td class="c" title="M3 上班（3 日）"><i></i></td><td class="c off" title="M3 休（4 日）"><i></i></td><td class="c" title="M3 上班（5 日）"><i></i></td><td class="c" title="M3 上班（6 日）"><i></i></td><td class="c" title="M3 上班（7 日）"><i></i></td><td class="c off" title="M3 休（8 日）"><i></i></td><td class="c" title="M3 上班（9 日）"><i></i></td><td class="c" title="M3 上班（10 日）"><i></i></td><td class="c" title="M3 上班（11 日）"><i></i></td><td class="c" title="M3 上班（12 日）"><i></i></td><td class="c off" title="M3 休（13 日）"><i></i></td><td class="c" title="M3 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="M3 上班（17 日）"><i></i></td><td class="c" title="M3 上班（18 日）"><i></i></td><td class="c" title="M3 上班（19 日）"><i></i></td><td class="c off" title="M3 休（20 日）"><i></i></td><td class="c" title="M3 上班（21 日）"><i></i></td><td class="c" title="M3 上班（22 日）"><i></i></td><td class="c" title="M3 上班（23 日）"><i></i></td><td class="c off" title="M3 休（24 日）"><i></i></td><td class="c" title="M3 上班（25 日）"><i></i></td><td class="c" title="M3 上班（26 日）"><i></i></td><td class="c" title="M3 上班（27 日）"><i></i></td><td class="c" title="M3 上班（28 日）"><i></i></td><td class="c off" title="M3 休（29 日）"><i></i></td><td class="c" title="M3 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">M4</td><td class="c" title="M4 上班（1 日）"><i></i></td><td class="c" title="M4 上班（2 日）"><i></i></td><td class="c" title="M4 上班（3 日）"><i></i></td><td class="c" title="M4 上班（4 日）"><i></i></td><td class="c off" title="M4 休（5 日）"><i></i></td><td class="c" title="M4 上班（6 日）"><i></i></td><td class="c" title="M4 上班（7 日）"><i></i></td><td class="c" title="M4 上班（8 日）"><i></i></td><td class="c off" title="M4 休（9 日）"><i></i></td><td class="c" title="M4 上班（10 日）"><i></i></td><td class="c" title="M4 上班（11 日）"><i></i></td><td class="c" title="M4 上班（12 日）"><i></i></td><td class="c" title="M4 上班（13 日）"><i></i></td><td class="c off" title="M4 休（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="M4 上班（17 日）"><i></i></td><td class="c" title="M4 上班（18 日）"><i></i></td><td class="c" title="M4 上班（19 日）"><i></i></td><td class="c" title="M4 上班（20 日）"><i></i></td><td class="c off" title="M4 休（21 日）"><i></i></td><td class="c" title="M4 上班（22 日）"><i></i></td><td class="c" title="M4 上班（23 日）"><i></i></td><td class="c" title="M4 上班（24 日）"><i></i></td><td class="c off" title="M4 休（25 日）"><i></i></td><td class="c" title="M4 上班（26 日）"><i></i></td><td class="c" title="M4 上班（27 日）"><i></i></td><td class="c" title="M4 上班（28 日）"><i></i></td><td class="c" title="M4 上班（29 日）"><i></i></td><td class="c off" title="M4 休（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr><td class="p gl" title="絕不同日休。單人日由工讀 PM2 頂上">櫃檯晚班</td><td colspan="30"></td></tr>
+    <tr><td class="p">N1</td><td class="c" title="N1 上班（1 日）"><i></i></td><td class="c off" title="N1 休（2 日）"><i></i></td><td class="c" title="N1 上班（3 日）"><i></i></td><td class="c" title="N1 上班（4 日）"><i></i></td><td class="c" title="N1 上班（5 日）"><i></i></td><td class="c" title="N1 上班（6 日）"><i></i></td><td class="c off" title="N1 休（7 日）"><i></i></td><td class="c" title="N1 上班（8 日）"><i></i></td><td class="c" title="N1 上班（9 日）"><i></i></td><td class="c" title="N1 上班（10 日）"><i></i></td><td class="c" title="N1 上班（11 日）"><i></i></td><td class="c off" title="N1 休（12 日）"><i></i></td><td class="c" title="N1 上班（13 日）"><i></i></td><td class="c" title="N1 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="N1 上班（17 日）"><i></i></td><td class="c" title="N1 上班（18 日）"><i></i></td><td class="c off" title="N1 休（19 日）"><i></i></td><td class="c" title="N1 上班（20 日）"><i></i></td><td class="c" title="N1 上班（21 日）"><i></i></td><td class="c" title="N1 上班（22 日）"><i></i></td><td class="c" title="N1 上班（23 日）"><i></i></td><td class="c off" title="N1 休（24 日）"><i></i></td><td class="c" title="N1 上班（25 日）"><i></i></td><td class="c" title="N1 上班（26 日）"><i></i></td><td class="c" title="N1 上班（27 日）"><i></i></td><td class="c" title="N1 上班（28 日）"><i></i></td><td class="c off" title="N1 休（29 日）"><i></i></td><td class="c" title="N1 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">N2</td><td class="c" title="N2 上班（1 日）"><i></i></td><td class="c" title="N2 上班（2 日）"><i></i></td><td class="c" title="N2 上班（3 日）"><i></i></td><td class="c off" title="N2 休（4 日）"><i></i></td><td class="c" title="N2 上班（5 日）"><i></i></td><td class="c" title="N2 上班（6 日）"><i></i></td><td class="c" title="N2 上班（7 日）"><i></i></td><td class="c" title="N2 上班（8 日）"><i></i></td><td class="c off" title="N2 休（9 日）"><i></i></td><td class="c" title="N2 上班（10 日）"><i></i></td><td class="c" title="N2 上班（11 日）"><i></i></td><td class="c" title="N2 上班（12 日）"><i></i></td><td class="c" title="N2 上班（13 日）"><i></i></td><td class="c off" title="N2 休（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="N2 上班（17 日）"><i></i></td><td class="c" title="N2 上班（18 日）"><i></i></td><td class="c" title="N2 上班（19 日）"><i></i></td><td class="c" title="N2 上班（20 日）"><i></i></td><td class="c off" title="N2 休（21 日）"><i></i></td><td class="c" title="N2 上班（22 日）"><i></i></td><td class="c" title="N2 上班（23 日）"><i></i></td><td class="c" title="N2 上班（24 日）"><i></i></td><td class="c" title="N2 上班（25 日）"><i></i></td><td class="c off" title="N2 休（26 日）"><i></i></td><td class="c" title="N2 上班（27 日）"><i></i></td><td class="c" title="N2 上班（28 日）"><i></i></td><td class="c" title="N2 上班（29 日）"><i></i></td><td class="c off" title="N2 休（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr><td class="p gl" title="每天恰 1 人在班，兩天一輪">夜班</td><td colspan="30"></td></tr>
+    <tr><td class="p">D1</td><td class="c" title="D1 上班（1 日）"><i></i></td><td class="c" title="D1 上班（2 日）"><i></i></td><td class="c off" title="D1 休（3 日）"><i></i></td><td class="c off" title="D1 休（4 日）"><i></i></td><td class="c" title="D1 上班（5 日）"><i></i></td><td class="c" title="D1 上班（6 日）"><i></i></td><td class="c off" title="D1 休（7 日）"><i></i></td><td class="c off" title="D1 休（8 日）"><i></i></td><td class="c" title="D1 上班（9 日）"><i></i></td><td class="c" title="D1 上班（10 日）"><i></i></td><td class="c off" title="D1 休（11 日）"><i></i></td><td class="c off" title="D1 休（12 日）"><i></i></td><td class="c" title="D1 上班（13 日）"><i></i></td><td class="c" title="D1 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="D1 上班（17 日）"><i></i></td><td class="c" title="D1 上班（18 日）"><i></i></td><td class="c off" title="D1 休（19 日）"><i></i></td><td class="c off" title="D1 休（20 日）"><i></i></td><td class="c" title="D1 上班（21 日）"><i></i></td><td class="c" title="D1 上班（22 日）"><i></i></td><td class="c off" title="D1 休（23 日）"><i></i></td><td class="c off" title="D1 休（24 日）"><i></i></td><td class="c" title="D1 上班（25 日）"><i></i></td><td class="c" title="D1 上班（26 日）"><i></i></td><td class="c off" title="D1 休（27 日）"><i></i></td><td class="c off" title="D1 休（28 日）"><i></i></td><td class="c" title="D1 上班（29 日）"><i></i></td><td class="c" title="D1 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">D2</td><td class="c off" title="D2 休（1 日）"><i></i></td><td class="c off" title="D2 休（2 日）"><i></i></td><td class="c" title="D2 上班（3 日）"><i></i></td><td class="c" title="D2 上班（4 日）"><i></i></td><td class="c off" title="D2 休（5 日）"><i></i></td><td class="c off" title="D2 休（6 日）"><i></i></td><td class="c" title="D2 上班（7 日）"><i></i></td><td class="c" title="D2 上班（8 日）"><i></i></td><td class="c off" title="D2 休（9 日）"><i></i></td><td class="c off" title="D2 休（10 日）"><i></i></td><td class="c" title="D2 上班（11 日）"><i></i></td><td class="c" title="D2 上班（12 日）"><i></i></td><td class="c off" title="D2 休（13 日）"><i></i></td><td class="c off" title="D2 休（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c off" title="D2 休（17 日）"><i></i></td><td class="c off" title="D2 休（18 日）"><i></i></td><td class="c" title="D2 上班（19 日）"><i></i></td><td class="c" title="D2 上班（20 日）"><i></i></td><td class="c off" title="D2 休（21 日）"><i></i></td><td class="c off" title="D2 休（22 日）"><i></i></td><td class="c" title="D2 上班（23 日）"><i></i></td><td class="c" title="D2 上班（24 日）"><i></i></td><td class="c off" title="D2 休（25 日）"><i></i></td><td class="c off" title="D2 休（26 日）"><i></i></td><td class="c" title="D2 上班（27 日）"><i></i></td><td class="c" title="D2 上班（28 日）"><i></i></td><td class="c off" title="D2 休（29 日）"><i></i></td><td class="c off" title="D2 休（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr><td class="p gl" title="PM1／PM2 只在對應櫃檯班的單人日；P1 P2 是班位，每天都要有人">工讀生</td><td colspan="30"></td></tr>
+    <tr><td class="p">PM1</td><td class="c" title="PM1 上班（1 日）"><i></i></td><td class="c off" title="PM1 休（2 日）"><i></i></td><td class="c off" title="PM1 休（3 日）"><i></i></td><td class="c" title="PM1 上班（4 日）"><i></i></td><td class="c off" title="PM1 休（5 日）"><i></i></td><td class="c" title="PM1 上班（6 日）"><i></i></td><td class="c off" title="PM1 休（7 日）"><i></i></td><td class="c" title="PM1 上班（8 日）"><i></i></td><td class="c off" title="PM1 休（9 日）"><i></i></td><td class="c off" title="PM1 休（10 日）"><i></i></td><td class="c" title="PM1 上班（11 日）"><i></i></td><td class="c off" title="PM1 休（12 日）"><i></i></td><td class="c" title="PM1 上班（13 日）"><i></i></td><td class="c off" title="PM1 休（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="PM1 上班（17 日）"><i></i></td><td class="c off" title="PM1 休（18 日）"><i></i></td><td class="c off" title="PM1 休（19 日）"><i></i></td><td class="c" title="PM1 上班（20 日）"><i></i></td><td class="c off" title="PM1 休（21 日）"><i></i></td><td class="c" title="PM1 上班（22 日）"><i></i></td><td class="c off" title="PM1 休（23 日）"><i></i></td><td class="c" title="PM1 上班（24 日）"><i></i></td><td class="c off" title="PM1 休（25 日）"><i></i></td><td class="c off" title="PM1 休（26 日）"><i></i></td><td class="c" title="PM1 上班（27 日）"><i></i></td><td class="c" title="PM1 上班（28 日）"><i></i></td><td class="c off" title="PM1 休（29 日）"><i></i></td><td class="c off" title="PM1 休（30 日）"><i></i></td></tr>
+    <tr><td class="p">PM2</td><td class="c off" title="PM2 休（1 日）"><i></i></td><td class="c" title="PM2 上班（2 日）"><i></i></td><td class="c off" title="PM2 休（3 日）"><i></i></td><td class="c" title="PM2 上班（4 日）"><i></i></td><td class="c off" title="PM2 休（5 日）"><i></i></td><td class="c off" title="PM2 休（6 日）"><i></i></td><td class="c" title="PM2 上班（7 日）"><i></i></td><td class="c off" title="PM2 休（8 日）"><i></i></td><td class="c" title="PM2 上班（9 日）"><i></i></td><td class="c off" title="PM2 休（10 日）"><i></i></td><td class="c off" title="PM2 休（11 日）"><i></i></td><td class="c" title="PM2 上班（12 日）"><i></i></td><td class="c off" title="PM2 休（13 日）"><i></i></td><td class="c" title="PM2 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c off" title="PM2 休（17 日）"><i></i></td><td class="c off" title="PM2 休（18 日）"><i></i></td><td class="c" title="PM2 上班（19 日）"><i></i></td><td class="c off" title="PM2 休（20 日）"><i></i></td><td class="c" title="PM2 上班（21 日）"><i></i></td><td class="c off" title="PM2 休（22 日）"><i></i></td><td class="c off" title="PM2 休（23 日）"><i></i></td><td class="c" title="PM2 上班（24 日）"><i></i></td><td class="c off" title="PM2 休（25 日）"><i></i></td><td class="c" title="PM2 上班（26 日）"><i></i></td><td class="c off" title="PM2 休（27 日）"><i></i></td><td class="c off" title="PM2 休（28 日）"><i></i></td><td class="c" title="PM2 上班（29 日）"><i></i></td><td class="c" title="PM2 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">P1</td><td class="c" title="P1 上班（1 日）"><i></i></td><td class="c" title="P1 上班（2 日）"><i></i></td><td class="c" title="P1 上班（3 日）"><i></i></td><td class="c" title="P1 上班（4 日）"><i></i></td><td class="c" title="P1 上班（5 日）"><i></i></td><td class="c" title="P1 上班（6 日）"><i></i></td><td class="c" title="P1 上班（7 日）"><i></i></td><td class="c" title="P1 上班（8 日）"><i></i></td><td class="c" title="P1 上班（9 日）"><i></i></td><td class="c" title="P1 上班（10 日）"><i></i></td><td class="c" title="P1 上班（11 日）"><i></i></td><td class="c" title="P1 上班（12 日）"><i></i></td><td class="c" title="P1 上班（13 日）"><i></i></td><td class="c" title="P1 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="P1 上班（17 日）"><i></i></td><td class="c" title="P1 上班（18 日）"><i></i></td><td class="c" title="P1 上班（19 日）"><i></i></td><td class="c" title="P1 上班（20 日）"><i></i></td><td class="c" title="P1 上班（21 日）"><i></i></td><td class="c" title="P1 上班（22 日）"><i></i></td><td class="c" title="P1 上班（23 日）"><i></i></td><td class="c" title="P1 上班（24 日）"><i></i></td><td class="c" title="P1 上班（25 日）"><i></i></td><td class="c" title="P1 上班（26 日）"><i></i></td><td class="c" title="P1 上班（27 日）"><i></i></td><td class="c" title="P1 上班（28 日）"><i></i></td><td class="c" title="P1 上班（29 日）"><i></i></td><td class="c" title="P1 上班（30 日）"><i></i></td></tr>
+    <tr><td class="p">P2</td><td class="c" title="P2 上班（1 日）"><i></i></td><td class="c" title="P2 上班（2 日）"><i></i></td><td class="c" title="P2 上班（3 日）"><i></i></td><td class="c" title="P2 上班（4 日）"><i></i></td><td class="c" title="P2 上班（5 日）"><i></i></td><td class="c" title="P2 上班（6 日）"><i></i></td><td class="c" title="P2 上班（7 日）"><i></i></td><td class="c" title="P2 上班（8 日）"><i></i></td><td class="c" title="P2 上班（9 日）"><i></i></td><td class="c" title="P2 上班（10 日）"><i></i></td><td class="c" title="P2 上班（11 日）"><i></i></td><td class="c" title="P2 上班（12 日）"><i></i></td><td class="c" title="P2 上班（13 日）"><i></i></td><td class="c" title="P2 上班（14 日）"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c cl" title="休園日"><i></i></td><td class="c" title="P2 上班（17 日）"><i></i></td><td class="c" title="P2 上班（18 日）"><i></i></td><td class="c" title="P2 上班（19 日）"><i></i></td><td class="c" title="P2 上班（20 日）"><i></i></td><td class="c" title="P2 上班（21 日）"><i></i></td><td class="c" title="P2 上班（22 日）"><i></i></td><td class="c" title="P2 上班（23 日）"><i></i></td><td class="c" title="P2 上班（24 日）"><i></i></td><td class="c" title="P2 上班（25 日）"><i></i></td><td class="c" title="P2 上班（26 日）"><i></i></td><td class="c" title="P2 上班（27 日）"><i></i></td><td class="c" title="P2 上班（28 日）"><i></i></td><td class="c" title="P2 上班（29 日）"><i></i></td><td class="c" title="P2 上班（30 日）"><i></i></td></tr>
+    <tr class="gap"><td colspan="31"></td></tr>
+    <tr class="sum"><td class="p">廚房在班</td><td class="c six">2</td><td class="c six">2</td><td class="c six">2</td><td class="c sev">3</td><td class="c six">2</td><td class="c six">2</td><td class="c six">2</td><td class="c sev">3</td><td class="c six">2</td><td class="c six">2</td><td class="c six">2</td><td class="c six">2</td><td class="c sev">3</td><td class="c six">2</td><td class="c cl">休</td><td class="c cl">休</td><td class="c six">2</td><td class="c six">2</td><td class="c sev">3</td><td class="c six">2</td><td class="c six">2</td><td class="c sev">3</td><td class="c six">2</td><td class="c sev">3</td><td class="c six">2</td><td class="c sev">3</td><td class="c six">2</td><td class="c sev">3</td><td class="c sev">3</td><td class="c sev">3</td></tr>
+    <tr class="sum"><td class="p">房務在班</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td><td class="c six">6</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td><td class="c six">6</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td><td class="c cl">休</td><td class="c cl">休</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td><td class="c six">6</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td><td class="c six">6</td><td class="c six">6</td><td class="c six">6</td><td class="c six">7</td></tr>
+    <tr class="sum"><td class="p">櫃檯早／晚</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c cl">休</td><td class="c cl">休</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td><td class="c">2/2</td></tr>
+    <tr class="sum"><td class="p">接駁車台數</td><td class="c sev">5</td><td class="c sev">5</td><td class="c six">4</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c six">4</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c six">4</td><td class="c cl">休</td><td class="c cl">休</td><td class="c sev">5</td><td class="c sev">5</td><td class="c six">4</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c six">4</td><td class="c sev">5</td><td class="c sev">5</td><td class="c sev">5</td><td class="c six">4</td></tr>
+    <tr class="sum"><td class="p">工讀生</td><td class="c six">3</td><td class="c six">3</td><td class="c six">2</td><td class="c sev">4</td><td class="c six">2</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c six">2</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c cl">休</td><td class="c cl">休</td><td class="c six">3</td><td class="c six">2</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c six">2</td><td class="c sev">4</td><td class="c six">2</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td><td class="c six">3</td></tr>
+    <tr class="sum"><td class="p">割草</td><td class="c mow"></td><td class="c mow">●</td><td class="c mow"></td><td class="c mow">●</td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow">●</td><td class="c mow"></td><td class="c mow">●</td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow">●</td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow">●</td><td class="c mow"></td><td class="c mow">●</td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td><td class="c mow"></td></tr>
+  </table>
+  <p class="note">
+    淺色 ＝ 休假，斜線 ＝ 休園日（15・16 日，週一二），紅色日期 ＝ 週末。底下五列是各組在班人數、接駁車台數與割草日。
+  </p>
+
+  <table style="margin-top:12px">
+    <thead><tr><th style="width:120px">組別</th><th style="width:70px">人數</th><th style="width:96px">在班範圍</th><th>排休規則</th></tr></thead>
+    <tbody>
+      <tr><td><b>廚房組</b></td><td class="num">3</td><td class="num">2–3</td><td>同日最多 1 人休。18 天 2 人、10 天 3 人</td></tr>
+      <tr><td><b>房務早班</b></td><td class="num">4</td><td class="num">3–4</td><td>同日最多 1 人休。全到日 ＝ 營業日 7、14、21、28</td></tr>
+      <tr><td><b>房務中班</b></td><td class="num">4</td><td class="num">3–4</td><td>同日最多 1 人休。全到日 ＝ 營業日 3、10、17、24，與早班刻意錯開</td></tr>
+      <tr><td><b>櫃檯早班</b></td><td class="num">2</td><td class="num">1–2</td><td><b>絕不同日休</b>，櫃檯必須有人</td></tr>
+      <tr class="hl"><td><b>櫃檯晚班</b></td><td class="num">2</td><td class="num">1–2</td><td><b>絕不同日休。但有 12 天只有 1 人 —— 見下方問題</b></td></tr>
+      <tr><td><b>園藝</b></td><td class="num">1</td><td class="num">0–1</td><td>6 個休假日<b>全部落在餘裕日</b></td></tr>
+      <tr><td><b>夜班</b></td><td class="num">2</td><td class="num">1</td><td>每天恰 1 人，兩天一輪。<b>不適用月休 8 天</b>，各上 14 天</td></tr>
+      <tr><td><b>工讀生</b></td><td class="num">2</td><td class="num">1–2</td><td>排班制：週末兩人、平日一人輪流，各上 17 天</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">
+    <b>正職 18 人每人月休 8 天</b>（含 2 天休園），也就是每人要在 28 個營業日裡排 6 天個人休假。
+    夜班與工讀生是輪班制，不套這個公式。
+  </p>
+
+    <h3>跨組的互斥限制（這是全員一起排才看得出來的）</h3>
+  <table>
+    <tbody>
+      <tr><td style="width:170px"><b>三個車手要錯開</b></td><td>接駁 5 台車的車手是：早班固定派 2 人、<b>廚房輪值 1 人</b>、櫃檯 F2（單人日由 PM1 頂）、園藝 G1。廚房那位由當天在班的廚師輪值，不受誰休假影響；<b>F2 與 G1 的休假日不重疊</b>（F2 4、8、13、20、24、28；G1 3、7、14、19、26、30），所以<b>每天至少 4 台</b></td></tr>
+      <tr><td><b>園藝對齊 餘裕日</b></td><td>園藝不在時他那 13 帳帳外要組別吸收，常態日會拖到 15:03。全部釘在餘裕日後是 14:23</td></tr>
+      <tr><td><b>割草日避開園藝休假</b></td><td>2、4、9、11、18、23、25 日 — 他不在就不可能割草</td></tr>
+      <tr><td><b>櫃檯早班不同日休</b></td><td>F1 常駐櫃檯、F2 要開接駁車，兩人同休則 08:00–10:00 櫃檯無人</td></tr>
+    </tbody>
+  </table>
+
+  </div>
+<div class="modfoot"><button class="pagb" data-m="m1">‹ 上一頁</button><button class="pagb" data-m="m3">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m3" data-t="流程圖">
+<h2>三、全日流程圖（分人數看，點方塊看細節）</h2>
+
+<div class="sctabs"><button class="sctab on" data-go-sc="A"><b>常態日</b><span>20 天／月</span></button><button class="sctab" data-go-sc="B"><b>餘裕日・早班滿</b><span>4 天／月</span></button><button class="sctab" data-go-sc="C"><b>餘裕日・中班滿</b><span>4 天／月</span></button></div>
+<div id="scbar" class="scbar"></div>
+
+<div class="gantt">
+<div class="gi">
+  <div class="row"><div class="lab lab-h"></div><div class="hdr"><span>06</span><span>07</span><span>08</span><span>09</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>00</span><span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span></div></div>
+  <div class="grpname" data-sc="ABC">廚房組　<span>06:30–15:30　廚師 3 人，輪守熱檯／冷檯／機動，日常在班 2–3</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="K1" title="看 K1 一整天">K1 <small>廚師・熱檯</small></button>
+    <div class="track"><div class="b c-prep tight" data-id="b1" role="button" tabindex="0" aria-label="K1 06:30–08:00 早餐熱檯備製" style="grid-column:2/5">熱食備製</div><div class="b c-serve" data-id="b2" role="button" tabindex="0" aria-label="K1 08:00–10:00 早餐供餐・熱檯補菜" style="grid-column:5/9">早餐供餐</div><div class="b c-prep" data-id="b3" role="button" tabindex="0" aria-label="K1 10:00–11:00 收餐・洗碗・歸位" style="grid-column:9/11">收餐洗碗</div><div class="b c-rest" data-id="b4" role="button" tabindex="0" aria-label="K1 11:00–12:00 員工用餐" style="grid-column:11/13"></div><div class="b c-prep" data-id="b5" role="button" tabindex="0" aria-label="K1 12:00–15:00 下午茶備製 → 晚餐湯底與肉品分裝" style="grid-column:13/19">下午茶・晚餐備料</div><div class="b c-serve" data-id="b6" role="button" tabindex="0" aria-label="K1 15:00–15:30 交接中班" style="grid-column:19/20"></div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="K2" title="看 K2 一整天">K2 <small>廚師・冷檯</small></button>
+    <div class="track"><div class="b c-prep tight" data-id="b7" role="button" tabindex="0" aria-label="K2 06:30–08:00 早餐冷檯備製" style="grid-column:2/5">冷檯備製</div><div class="b c-serve" data-id="b8" role="button" tabindex="0" aria-label="K2 08:00–10:00 早餐供餐・冷檯補給" style="grid-column:5/9">早餐補給</div><div class="b c-prep" data-id="b9" role="button" tabindex="0" aria-label="K2 10:00–11:00 收餐・擺盤歸位" style="grid-column:9/11">收餐歸位</div><div class="b c-rest" data-id="b10" role="button" tabindex="0" aria-label="K2 11:00–12:00 員工用餐" style="grid-column:11/13"></div><div class="b c-prep" data-id="b11" role="button" tabindex="0" aria-label="K2 12:00–15:00 下午茶盤製 → 晚餐蔬菜洗切分裝" style="grid-column:13/19">下午茶・蔬菜分裝</div><div class="b c-serve" data-id="b12" role="button" tabindex="0" aria-label="K2 15:00–15:30 交接中班" style="grid-column:19/20"></div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="K3" title="看 K3 一整天">K3 <small>廚師・機動</small></button>
+    <div class="track"><div class="b c-prep" data-id="b13" role="button" tabindex="0" aria-label="K3 06:30–08:00 第三條線：兩檯之間補位" style="grid-column:2/5">備餐支援</div><div class="b c-serve" data-id="b14" role="button" tabindex="0" aria-label="K3 08:00–10:30 早餐出餐線・補給" style="grid-column:5/10">早餐出餐線</div><div class="b c-shuttle" data-id="b15" role="button" tabindex="0" aria-label="K3 10:30–11:00 備車・裝載備品" style="grid-column:10/11"></div><div class="b c-shuttle" data-id="b16" role="button" tabindex="0" aria-label="K3 11:00–11:30 退房接駁 1 號車" style="grid-column:11/12"></div><div class="b c-rest" data-id="b17" role="button" tabindex="0" aria-label="K3 11:30–12:30 員工用餐" style="grid-column:12/14"></div><div class="b c-prep" data-id="b18" role="button" tabindex="0" aria-label="K3 12:30–15:30 下午茶・晚餐備料支援" style="grid-column:14/20">備料支援</div></div></div>
+  <div class="grpname" data-sc="ABC">房務早班　<span>07:00–16:00　4 人，日常在班 3–4</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="H1" title="看 H1 一整天">H1 <small>公區廁所</small></button>
+    <div class="track"><div class="b c-clean" data-id="b19" role="button" tabindex="0" aria-label="H1 07:00–08:00 管理室公共廁所" style="grid-column:3/5">公廁</div><div class="b c-serve" data-id="b20" role="button" tabindex="0" aria-label="H1 08:00–10:00 早餐場收餐具・翻桌" style="grid-column:5/9">早餐收餐</div><div class="b c-clean" data-id="b21" role="button" tabindex="0" aria-label="H1 10:00–10:30 早餐結束，整理餐廳" style="grid-column:9/10"></div><div class="b c-shuttle" data-id="b22" role="button" tabindex="0" aria-label="H1 10:30–11:00 備車・裝載備品" style="grid-column:10/11"></div><div class="b c-shuttle" data-id="b23" role="button" tabindex="0" aria-label="H1 11:00–11:30 退房接駁 2 號車" style="grid-column:11/12"></div><div class="b c-room tight" data-id="b24" role="button" tabindex="0" aria-label="H1 11:30–15:00 房務・兩人一組一帳到底" style="grid-column:12/19">房務（兩人一組）</div><div class="b c-serve" data-id="b25" role="button" tabindex="0" aria-label="H1 15:00–16:00 下午茶出餐支援" style="grid-column:19/21">下午茶</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="H2" title="看 H2 一整天">H2 <small>餐廳·廚房</small></button>
+    <div class="track"><div class="b c-prep" data-id="b26" role="button" tabindex="0" aria-label="H2 07:00–08:00 餐廳擺桌 → 轉入廚房支援" style="grid-column:3/5">支援廚房</div><div class="b c-serve" data-id="b27" role="button" tabindex="0" aria-label="H2 08:00–10:00 收餐具・通報補菜" style="grid-column:5/9">早餐收餐</div><div class="b c-clean" data-id="b28" role="button" tabindex="0" aria-label="H2 10:00–10:30 整理餐廳" style="grid-column:9/10"></div><div class="b c-shuttle" data-id="b29" role="button" tabindex="0" aria-label="H2 10:30–11:00 備車・裝載備品" style="grid-column:10/11"></div><div class="b c-shuttle" data-id="b30" role="button" tabindex="0" aria-label="H2 11:00–11:30 退房接駁 3 號車" style="grid-column:11/12"></div><div class="b c-room tight" data-id="b31" role="button" tabindex="0" aria-label="H2 11:30–15:00 房務・兩人一組一帳到底" style="grid-column:12/19">房務（兩人一組）</div><div class="b c-serve" data-id="b32" role="button" tabindex="0" aria-label="H2 15:00–16:00 下午茶出餐支援" style="grid-column:19/21">下午茶</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="H3" title="看 H3 一整天">H3 <small>備品專責</small></button>
+    <div class="track"><div class="b c-clean" data-id="b33" role="button" tabindex="0" aria-label="H3 07:00–08:00 小動物區整理" style="grid-column:3/5">小動物區</div><div class="b c-room" data-id="b34" role="button" tabindex="0" aria-label="H3 08:00–11:00 全職包房務備品（60+ 組）" style="grid-column:5/11">全職包備品</div><div class="b c-room tight" data-id="b35" role="button" tabindex="0" aria-label="H3 11:00–15:00 房務・兩人一組一帳到底" style="grid-column:11/19">房務（兩人一組）</div><div class="b c-serve" data-id="b36" role="button" tabindex="0" aria-label="H3 15:00–16:00 下午茶出餐支援" style="grid-column:19/21">下午茶</div></div></div>
+  <div class="row" data-sc="B"><button class="lab" data-lane="H4" title="看 H4 一整天">H4 <small>機動</small></button>
+    <div class="track"><div class="b c-prep" data-id="b37" role="button" tabindex="0" aria-label="H4 07:00–08:00 廚房備餐支援" style="grid-column:3/5">支援廚房</div><div class="b c-serve" data-id="b38" role="button" tabindex="0" aria-label="H4 08:00–10:00 早餐場收餐具" style="grid-column:5/9">早餐收餐</div><div class="b c-clean" data-id="b39" role="button" tabindex="0" aria-label="H4 10:00–10:30 整理餐廳" style="grid-column:9/10"></div><div class="b c-room" data-id="b40" role="button" tabindex="0" aria-label="H4 10:30–11:00 支援包備品收尾" style="grid-column:10/11"></div><div class="b c-room tight" data-id="b41" role="button" tabindex="0" aria-label="H4 11:00–15:00 房務・兩人一組一帳到底" style="grid-column:11/19">房務（兩人一組）</div><div class="b c-serve" data-id="b42" role="button" tabindex="0" aria-label="H4 15:00–16:00 下午茶出餐支援" style="grid-column:19/21">下午茶</div></div></div>
+  <div class="grpname" data-sc="ABC">櫃檯早班　<span>08:00–17:00　正職 2 人 ＋ 替補工讀 1 人</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="F1" title="看 F1 一整天">F1 <small>櫃檯常駐</small></button>
+    <div class="track"><div class="b c-desk" data-id="b43" role="button" tabindex="0" aria-label="F1 08:00–11:00 櫃檯接待・退房結帳" style="grid-column:5/11">櫃檯・退房結帳</div><div class="b c-desk" data-id="b44" role="button" tabindex="0" aria-label="F1 11:00–15:00 櫃檯常駐・訂房客訴" style="grid-column:11/19">櫃檯常駐</div><div class="b c-desk" data-id="b45" role="button" tabindex="0" aria-label="F1 15:00–17:00 check-in 尖峰・下午茶點單" style="grid-column:19/23">check-in</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="F2" title="看 F2 一整天">F2 <small>機動</small></button>
+    <div class="track"><div class="b c-serve" data-id="b46" role="button" tabindex="0" aria-label="F2 08:00–10:00 到餐廳支援收餐具・翻桌" style="grid-column:5/9">餐廳收餐</div><div class="b c-clean" data-id="b47" role="button" tabindex="0" aria-label="F2 10:00–10:30 整理餐廳" style="grid-column:9/10"></div><div class="b c-shuttle" data-id="b48" role="button" tabindex="0" aria-label="F2 10:30–11:00 備車" style="grid-column:10/11"></div><div class="b c-shuttle" data-id="b49" role="button" tabindex="0" aria-label="F2 11:00–11:30 退房接駁 4 號車" style="grid-column:11/12"></div><div class="b c-desk" data-id="b50" role="button" tabindex="0" aria-label="F2 11:30–15:00 回櫃檯・退房結帳尾段" style="grid-column:12/19">櫃檯・退房結帳</div><div class="b c-desk" data-id="b51" role="button" tabindex="0" aria-label="F2 15:00–17:00 check-in・下午茶點單" style="grid-column:19/23">check-in</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="PM1" title="看 PM1 一整天">PM1 <small>替補工讀</small></button>
+    <div class="track"><div class="b c-serve" data-id="b52" role="button" tabindex="0" aria-label="PM1 08:00–10:00 頂替 F2 的餐廳支援" style="grid-column:5/9">餐廳收餐</div><div class="b c-clean" data-id="b53" role="button" tabindex="0" aria-label="PM1 10:00–10:30 整理餐廳" style="grid-column:9/10"></div><div class="b c-shuttle" data-id="b54" role="button" tabindex="0" aria-label="PM1 10:30–11:00 備車" style="grid-column:10/11"></div><div class="b c-shuttle" data-id="b55" role="button" tabindex="0" aria-label="PM1 11:00–11:30 退房接駁 4 號車" style="grid-column:11/12"></div><div class="b c-desk" data-id="b56" role="button" tabindex="0" aria-label="PM1 11:30–13:00 守櫃檯，讓留守那人去吃飯" style="grid-column:12/15">顧櫃檯・換</div></div></div>
+  <div class="grpname" data-sc="ABC">園藝外場　<span>07:00–16:00　1 人</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="G1" title="看 G1 一整天">G1 <small>園藝</small></button>
+    <div class="track"><div class="b c-garden" data-id="b57" role="button" tabindex="0" aria-label="G1 07:00–09:00 晨間安靜作業" style="grid-column:3/7">巡場・落葉</div><div class="b c-garden" data-id="b58" role="button" tabindex="0" aria-label="G1 09:00–11:00 分區輪灌・花圃" style="grid-column:7/11">澆水・花圃</div><div class="b c-shuttle" data-id="b59" role="button" tabindex="0" aria-label="G1 11:00–11:30 退房接駁 5 號車" style="grid-column:11/12"></div><div class="b c-outdoor" data-id="b60" role="button" tabindex="0" aria-label="G1 11:30–14:00 帳外專責 13 帳" style="grid-column:12/17">帳外 13 帳</div><div class="b c-spray" data-id="b61" role="button" tabindex="0" aria-label="G1 14:00–15:00 機具保養・備料" style="grid-column:17/19">機具保養</div><div class="b c-garden" data-id="b62" role="button" tabindex="0" aria-label="G1 15:00–16:00 收工具・最後巡場" style="grid-column:19/21">收工具</div></div></div>
+  <div class="grpname" data-sc="ABC">房務中班　<span>11:00–20:00　4 人，日常在班 3–4</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="M1" title="看 M1 一整天">M1 <small>下午茶主責</small></button>
+    <div class="track"><div class="b c-room tight" data-id="b63" role="button" tabindex="0" aria-label="M1 11:00–15:00 房務・兩人一組一帳到底" style="grid-column:11/19">房務（兩人一組）</div><div class="b c-serve" data-id="b64" role="button" tabindex="0" aria-label="M1 15:00–16:00 下午茶出餐" style="grid-column:19/21">下午茶</div><div class="b c-serve" data-id="b65" role="button" tabindex="0" aria-label="M1 16:00–17:00 下午茶主責（尾段）" style="grid-column:21/23">下午茶主</div><div class="b c-serve tight" data-id="b66" role="button" tabindex="0" aria-label="M1 17:00–17:30 下午茶收場 ＋ 晚餐開場" style="grid-column:23/24"></div><div class="b c-serve" data-id="b67" role="button" tabindex="0" aria-label="M1 17:30–20:00 晚餐出餐（兩段制）" style="grid-column:24/29">晚餐出餐</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="M2" title="看 M2 一整天">M2 <small>晚餐擺盤</small></button>
+    <div class="track"><div class="b c-room tight" data-id="b68" role="button" tabindex="0" aria-label="M2 11:00–15:00 房務・兩人一組一帳到底" style="grid-column:11/19">房務（兩人一組）</div><div class="b c-prep" data-id="b69" role="button" tabindex="0" aria-label="M2 15:00–17:30 晚餐擺盤（接廚房分裝）" style="grid-column:19/24">晚餐擺盤</div><div class="b c-serve" data-id="b70" role="button" tabindex="0" aria-label="M2 17:30–20:00 晚餐出餐" style="grid-column:24/29">晚餐出餐</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="M3" title="看 M3 一整天">M3 <small>載客·收桌</small></button>
+    <div class="track"><div class="b c-room tight" data-id="b71" role="button" tabindex="0" aria-label="M3 11:00–15:00 房務・兩人一組一帳到底" style="grid-column:11/19">房務（兩人一組）</div><div class="b c-shuttle" data-id="b72" role="button" tabindex="0" aria-label="M3 15:00–17:00 載客進房・行李" style="grid-column:19/23">載客進房</div><div class="b c-prep" data-id="b73" role="button" tabindex="0" aria-label="M3 17:00–17:30 晚餐前置" style="grid-column:23/24"></div><div class="b c-serve" data-id="b74" role="button" tabindex="0" aria-label="M3 17:30–20:00 晚餐出餐・收桌" style="grid-column:24/29">晚餐出餐・收桌</div></div></div>
+  <div class="row" data-sc="C"><button class="lab" data-lane="M4" title="看 M4 一整天">M4 <small>機動</small></button>
+    <div class="track"><div class="b c-room tight" data-id="b75" role="button" tabindex="0" aria-label="M4 11:00–15:00 房務・第 4 組" style="grid-column:11/19">房務（兩人一組）</div><div class="b c-shuttle" data-id="b76" role="button" tabindex="0" aria-label="M4 15:00–16:00 載客進房支援" style="grid-column:19/21">載客支援</div><div class="b c-serve" data-id="b77" role="button" tabindex="0" aria-label="M4 16:00–17:00 下午茶尾段第二人" style="grid-column:21/23">下午茶尾</div><div class="b c-serve tight" data-id="b78" role="button" tabindex="0" aria-label="M4 17:00–17:30 下午茶收場 ＋ 晚餐開場" style="grid-column:23/24"></div><div class="b c-serve" data-id="b79" role="button" tabindex="0" aria-label="M4 17:30–20:00 晚餐出餐" style="grid-column:24/29">晚餐出餐</div></div></div>
+  <div class="grpname" data-sc="ABC">櫃檯晚班　<span>13:00–22:00　正職 2 人 ＋ 替補工讀 1 人</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="N1" title="看 N1 一整天">N1 <small>櫃檯常駐</small></button>
+    <div class="track"><div class="b c-desk" data-id="b80" role="button" tabindex="0" aria-label="N1 13:00–15:00 交接・check-in 準備" style="grid-column:15/19">交接・準備</div><div class="b c-desk" data-id="b81" role="button" tabindex="0" aria-label="N1 15:00–17:00 check-in 尖峰" style="grid-column:19/23">check-in 尖峰</div><div class="b c-desk" data-id="b82" role="button" tabindex="0" aria-label="N1 17:00–22:00 櫃檯常駐" style="grid-column:23/33">櫃檯常駐</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="N2" title="看 N2 一整天">N2 <small>酒吧</small></button>
+    <div class="track"><div class="b c-bar" data-id="b83" role="button" tabindex="0" aria-label="N2 13:00–15:00 交接・酒吧備檯" style="grid-column:15/19">交接・備吧</div><div class="b c-desk" data-id="b84" role="button" tabindex="0" aria-label="N2 15:00–17:00 check-in・下午茶點單" style="grid-column:19/23">check-in</div><div class="b c-shuttle" data-id="b85" role="button" tabindex="0" aria-label="N2 17:00–19:00 載客進房支援・酒吧開檯準備" style="grid-column:23/27">載客・備吧</div><div class="b c-bar" data-id="b86" role="button" tabindex="0" aria-label="N2 19:00–22:00 酒吧營運" style="grid-column:27/33">酒吧營運</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="PM2" title="看 PM2 一整天">PM2 <small>替補工讀</small></button>
+    <div class="track"><div class="b c-desk" data-id="b87" role="button" tabindex="0" aria-label="PM2 19:00–22:00 櫃檯晚班單人日的櫃檯值守" style="grid-column:27/33">顧櫃檯</div></div></div>
+  <div class="grpname" data-sc="ABC">工讀生機動組　<span>P1 16:00–22:00 ／ P2 17:00–22:00</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="P1" title="看 P1 一整天">P1 <small>外場機動</small></button>
+    <div class="track"><div class="b c-serve" data-id="b88" role="button" tabindex="0" aria-label="P1 16:00–17:00 下午茶收桌（邊吃邊收）" style="grid-column:21/23">下午茶收</div><div class="b c-serve tight" data-id="b89" role="button" tabindex="0" aria-label="P1 17:00–17:30 下午茶收場 ＋ 翻成晚餐場" style="grid-column:23/24"></div><div class="b c-serve" data-id="b90" role="button" tabindex="0" aria-label="P1 17:30–19:00 晚餐第一段出餐" style="grid-column:24/27">晚餐第一段</div><div class="b c-serve" data-id="b91" role="button" tabindex="0" aria-label="P1 19:00–20:00 第一段收桌 ＋ 第二段出餐" style="grid-column:27/29">收桌・第</div><div class="b c-serve" data-id="b92" role="button" tabindex="0" aria-label="P1 20:00–20:30 第二段晚餐收尾（中班已下班）" style="grid-column:29/30"></div><div class="b c-clean" data-id="b93" role="button" tabindex="0" aria-label="P1 20:30–22:00 餐廳收場（與 P2 兩人）" style="grid-column:30/33">收場・擦掃</div></div></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="P2" title="看 P2 一整天">P2 <small>內場支援</small></button>
+    <div class="track"><div class="b c-serve tight" data-id="b94" role="button" tabindex="0" aria-label="P2 17:00–17:30 下午茶收場 ＋ 翻成晚餐場" style="grid-column:23/24"></div><div class="b c-prep tight" data-id="b95" role="button" tabindex="0" aria-label="P2 17:30–19:00 當場洗下午茶 124 份" style="grid-column:24/27">洗下午茶</div><div class="b c-prep" data-id="b96" role="button" tabindex="0" aria-label="P2 19:00–20:00 洗晚餐第一段 62 份" style="grid-column:27/29">洗第一段</div><div class="b c-serve" data-id="b97" role="button" tabindex="0" aria-label="P2 20:00–20:30 第二段晚餐收尾（與 P1）" style="grid-column:29/30"></div><div class="b c-clean" data-id="b98" role="button" tabindex="0" aria-label="P2 20:30–22:00 餐廳收場・廚具搬回廚房" style="grid-column:30/33">收場・搬廚</div></div></div>
+  <div class="grpname" data-sc="ABC">夜班　<span>22:00–隔日 06:30　2 人一上一休，現場 1 人</span></div>
+  <div class="row" data-sc="ABC"><button class="lab" data-lane="D1" title="看 D1 一整天">D1 <small>夜間值班</small></button>
+    <div class="track"><div class="b c-prep" data-id="b99" role="button" tabindex="0" aria-label="D1 22:00–23:30 洗晚餐第二段 62 份與廚具" style="grid-column:33/36">洗第二段・</div><div class="b c-night" data-id="b100" role="button" tabindex="0" aria-label="D1 23:30–06:00 夜間值班・巡場" style="grid-column:36/49">夜間值班</div><div class="b c-prep" data-id="b101" role="button" tabindex="0" aria-label="D1 06:00–06:30 開機預熱・起粥・交接廚房" style="grid-column:49/50"></div></div></div>
+  <div class="legend"><span class="lg"><i class="sw c-prep"></i>餐飲備製／洗滌</span><span class="lg"><i class="sw c-serve"></i>出餐／現場服務</span><span class="lg"><i class="sw c-clean"></i>公區清潔</span><span class="lg"><i class="sw c-room"></i>房務（房內／備品）</span><span class="lg"><i class="sw c-outdoor"></i>帳外（洗腳池·垃圾桶·採光罩·桌椅）</span><span class="lg"><i class="sw c-shuttle"></i>接駁載客</span><span class="lg"><i class="sw c-desk"></i>櫃檯</span><span class="lg"><i class="sw c-garden"></i>園藝</span><span class="lg"><i class="sw c-spray"></i>園藝（機具／藥劑）</span><span class="lg"><i class="sw c-bar"></i>酒吧</span><span class="lg"><i class="sw c-night"></i>夜間值班</span><span class="lg"><i class="sw c-rest"></i>用餐</span><span class="lg"><i class="sw tightkey"></i>時間吃緊，沒有餘裕</span></div>
+</div>
+</div>
+
+<div id="bpanel" class="bpanel empty" aria-live="polite">
+  <div class="bp-hint">點上面任一個工作方塊看細節，或點左側的人員代號看他一整天。</div>
+</div>
+
+<div class="print-only">
+<h3 style="margin-top:34px">逐人工作明細（列印用）</h3>
+<p class="apx-g">廚房組　06:30–15:30　廚師 3 人，輪守熱檯／冷檯／機動，日常在班 2–3</p>
+<table class="apx"><thead><tr><th colspan="2">K1　廚師・熱檯　<span style="font-weight:400;color:var(--muted)">06:30–15:30</span></th></tr></thead><tbody>
+<tr><td class="apx-time">06:30–08:00</td><td><b>早餐熱檯備製</b><ul><li>接手夜班已起的粥，調味顧火</li><li>蛋：炒蛋或水煮蛋，滿帳備 130 份</li><li>薯條、雞塊：炸檯預熱、分批下鍋</li><li>燒賣或蘿蔔糕（當日擇一）上蒸籠</li><li>當日青菜（高麗菜／花椰菜擇一）汆燙拌油</li></ul><div class="apx-t">時間吃緊：06:30–07:00 只有 K1 K2 兩人，H2 要 07:00 才到；三人全到一個月只有 10 天</div></td></tr>
+<tr><td class="apx-time">08:00–10:00</td><td><b>早餐供餐・熱檯補菜</b><ul><li>盯粥、蛋、炸物、青菜四區</li><li>滿帳 124 人分兩波，08:00 與 09:00 各一次尖峰</li><li>缺料由房務即時通報，不等客人反映</li></ul></td></tr>
+<tr><td class="apx-time">10:00–11:00</td><td><b>收餐・洗碗・歸位</b><ul><li>熱檯撤下，鍋具進洗碗機</li><li>爐檯與炸檯清潔、濾油</li><li>清點隔日熱食備料</li></ul></td></tr>
+<tr><td class="apx-time">11:00–12:00</td><td><b>員工用餐</b><ul><li>全廚房同時休息，11:00 早餐場已收完</li></ul></td></tr>
+<tr><td class="apx-time">12:00–15:00</td><td><b>下午茶備製 → 晚餐湯底與肉品分裝</b><ul><li>下午茶單點品項備料、醬料分裝</li><li>晚餐湯底調製（調好滾過即可出餐）</li><li>肉品與海鮮分裝秤重，裝盒上層架</li><li>只分裝不擺盤 — 擺盤 15:00 後由 M2 做</li></ul><div class="apx-n">蔬菜久置問題就是靠這條解決：廚房只分裝，擺盤往後移。</div></td></tr>
+<tr><td class="apx-time">15:00–15:30</td><td><b>交接中班</b><ul><li>向 M2 交代層架位置、份數、湯底狀態</li><li>肉品海鮮庫存點交</li><li>下午茶出餐支援到下班</li></ul></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">K2　廚師・冷檯　<span style="font-weight:400;color:var(--muted)">06:30–15:30</span></th></tr></thead><tbody>
+<tr><td class="apx-time">06:30–08:00</td><td><b>早餐冷檯備製</b><ul><li>中式小菜：肉鬆、麵筋、脆瓜、花生分盤</li><li>吐司區：吐司上架、烤箱預熱（客人自烤）</li><li>培根、德式香腸煎製</li><li>水果切盤、牛奶冰鎮上架</li><li>茶／咖啡／果汁機器補豆補水（機器供應，不佔人力）</li></ul><div class="apx-t">時間吃緊：同上，開機、取料、起鍋全擠在前 30 分鐘</div></td></tr>
+<tr><td class="apx-time">08:00–10:00</td><td><b>早餐供餐・冷檯補給</b><ul><li>小菜、水果、牛奶補給</li><li>吐司區補料、顧烤箱狀況</li></ul></td></tr>
+<tr><td class="apx-time">10:00–11:00</td><td><b>收餐・擺盤歸位</b><ul><li>冷藏品回冰，剩料判定留用或報廢</li><li>擺盤器皿洗淨歸位</li></ul></td></tr>
+<tr><td class="apx-time">11:00–12:00</td><td><b>員工用餐</b><ul><li>全廚房同時休息</li></ul></td></tr>
+<tr><td class="apx-time">12:00–15:00</td><td><b>下午茶盤製 → 晚餐蔬菜洗切分裝</b><ul><li>下午茶盤製（一人一份 set，不是 buffet）</li><li>晚餐蔬菜洗切、分裝入盒、上層架</li><li>標示份數與層架位置，給 M2 接手</li></ul><div class="apx-n">只分裝不擺盤。擺盤 15:00 後才開始，蔬菜從擺盤到上桌不到 1 小時。</div></td></tr>
+<tr><td class="apx-time">15:00–15:30</td><td><b>交接中班</b><ul><li>與 K1 一起向 M2 點交</li></ul></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">K3　廚師・機動　<span style="font-weight:400;color:var(--muted)">06:30–15:30</span></th></tr></thead><tbody>
+<tr><td class="apx-time">06:30–08:00</td><td><b>第三條線：兩檯之間補位</b><ul><li>哪一檯落後就補哪一檯，三人全到時早餐備製有 270 人分</li><li>三位都是廚師，任何兩人組合都開得起熱檯與冷檯</li></ul><div class="apx-n">K3 輪休的日子（每月 18 天），兩位在班的廚師各守一檯 —— 這是把助理升為第三位廚師之後才成立的。</div></td></tr>
+<tr><td class="apx-time">08:00–10:30</td><td><b>早餐出餐線・補給</b><ul><li>兩檯之間補給與傳送</li><li>空盤回收、熱檯保溫確認</li></ul><div class="apx-n">K3 不在時由 K1 K2 兼顧，房務收餐那幾人多跑廚房。</div></td></tr>
+<tr><td class="apx-time">10:30–11:00</td><td><b>備車・裝載備品</b><ul><li>1 號車就位</li><li>從 H3 接收該車負責帳號的備品，核對加床</li></ul><div class="apx-n">這個位子是廚房輪值：K3 休假日由 K1 或 K2 接手，11:00 廚房正值員工餐時段，抽得開。</div></td></tr>
+<tr><td class="apx-time">11:00–11:30</td><td><b>退房接駁 1 號車</b><ul><li>載客出場，含驗房約 8 分鐘／趟</li><li>每台跑 4 趟，11:32 全隊收工</li><li>回程把備品送進對應帳</li></ul><div class="apx-n">廚房每天都派得出一位車手，所以接駁固定 5 台、32 分鐘。</div></td></tr>
+<tr><td class="apx-time">11:30–12:30</td><td><b>員工用餐</b><ul><li>接駁結束才吃，比另外兩位晚一小時</li></ul></td></tr>
+<tr><td class="apx-time">12:30–15:30</td><td><b>下午茶・晚餐備料支援</b><ul><li>協助 K1 K2 分裝與備料</li><li>下午茶出餐線預備</li></ul></td></tr>
+</tbody></table>
+<p class="apx-g">房務早班　07:00–16:00　4 人，日常在班 3–4</p>
+<table class="apx"><thead><tr><th colspan="2">H1　公區廁所　<span style="font-weight:400;color:var(--muted)">07:00–16:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">07:00–08:00</td><td><b>管理室公共廁所</b><ul><li>馬桶、洗手檯、地板、鏡面全套</li><li>補衛生紙、洗手乳、垃圾袋</li></ul><div class="apx-n">客人 08:00 開始用餐會經過，必須 08:00 前完成。</div></td></tr>
+<tr><td class="apx-time">08:00–10:00</td><td><b>早餐場收餐具・翻桌</b><ul><li>桌數不足 30 餘桌，吃完一桌收一桌、立刻翻桌</li><li>與 H2、H4、F2 同場</li></ul></td></tr>
+<tr><td class="apx-time">10:00–10:30</td><td><b>早餐結束，整理餐廳</b><ul><li>四人同時：擦桌、掃地、拖地、椅子歸位</li><li>H1 H2 H4 ＋ 櫃檯 F2</li></ul></td></tr>
+<tr><td class="apx-time">10:30–11:00</td><td><b>備車・裝載備品</b><ul><li>2 號車就位</li><li>裝該車帳號的備品</li></ul></td></tr>
+<tr><td class="apx-time">11:00–11:30</td><td><b>退房接駁 2 號車</b><ul><li>載客出場，回程載備品進場</li><li>5 台車 4 趟，11:32 收工</li></ul></td></tr>
+<tr><td class="apx-time">11:30–15:00</td><td><b>房務・兩人一組一帳到底</b><ul><li>房內：換床 4 床 9 分、衛浴 9 分、地板 5 分、備品與垃圾 4 分</li><li>帳外：垃圾桶、桌椅、洗腳池沖洗（採光罩看輪值）</li><li>一帳房內＋帳外做完才換下一帳</li><li>每帳約 18.2 分鐘，每組約 10 帳</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div></td></tr>
+<tr><td class="apx-time">15:00–16:00</td><td><b>下午茶出餐支援</b><ul><li>單點出餐，櫃檯點單後一份一份送</li><li>早班四人同場，人力最足的一小時</li></ul></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">H2　餐廳·廚房　<span style="font-weight:400;color:var(--muted)">07:00–16:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">07:00–08:00</td><td><b>餐廳擺桌 → 轉入廚房支援</b><ul><li>夜班昨晚已清潔，只需擺桌，約 15 分鐘</li><li>其餘 45 分鐘進廚房支援備餐</li></ul><div class="apx-n">這是早餐備製每天唯一的外援。7 人日才多一個 H4。</div></td></tr>
+<tr><td class="apx-time">08:00–10:00</td><td><b>收餐具・通報補菜</b><ul><li>收餐具、翻桌</li><li>哪一道快見底立刻跟廚房講，不等客人反映</li></ul></td></tr>
+<tr><td class="apx-time">10:00–10:30</td><td><b>整理餐廳</b><ul><li>與 H1 H4 F2 四人同時</li></ul></td></tr>
+<tr><td class="apx-time">10:30–11:00</td><td><b>備車・裝載備品</b><ul><li>3 號車就位</li></ul></td></tr>
+<tr><td class="apx-time">11:00–11:30</td><td><b>退房接駁 3 號車</b><ul><li>載客出場，回程載備品</li></ul></td></tr>
+<tr><td class="apx-time">11:30–15:00</td><td><b>房務・兩人一組一帳到底</b><ul><li>與中班配對</li><li>一帳房內＋帳外做完才換下一帳</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div></td></tr>
+<tr><td class="apx-time">15:00–16:00</td><td><b>下午茶出餐支援</b></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">H3　備品專責　<span style="font-weight:400;color:var(--muted)">07:00–16:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">07:00–08:00</td><td><b>小動物區整理</b><ul><li>清糞、換水、餵食</li><li>圍欄周邊整理</li></ul><div class="apx-n">客人退房前會去玩，必須一早就乾淨。</div></td></tr>
+<tr><td class="apx-time">08:00–11:00</td><td><b>全職包房務備品（60+ 組）</b><ul><li>床包、枕套、被套、毛巾、浴巾依帳號分組</li><li>加床帳另外標示</li><li>備品、盥洗包、礦泉水一併配入</li><li>10:30 把包好的備品分配到 5 台車上</li></ul><div class="apx-n">F2 接手餐廳後釋出的人力。11:00 前必須包完，接駁車回程才能直接載進場。</div></td></tr>
+<tr><td class="apx-time">11:00–15:00</td><td><b>房務・兩人一組一帳到底</b><ul><li>不用開車，11:00 就能跟中班配對開工</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div></td></tr>
+<tr><td class="apx-time">15:00–16:00</td><td><b>下午茶出餐支援</b></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">H4　機動　<span style="font-weight:400;color:var(--muted)">07:00–16:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">07:00–08:00</td><td><b>廚房備餐支援</b><ul><li>把早餐備製從 2 人拉到 4 人（含 H2）</li></ul><div class="apx-n">只有房務 7 人日（每月 8 天）才有這個人。其餘 20 天廚房只有 H2 支援。</div></td></tr>
+<tr><td class="apx-time">08:00–10:00</td><td><b>早餐場收餐具</b></td></tr>
+<tr><td class="apx-time">10:00–10:30</td><td><b>整理餐廳</b></td></tr>
+<tr><td class="apx-time">10:30–11:00</td><td><b>支援包備品收尾</b><ul><li>幫 H3 把最後幾組包完、上車</li></ul></td></tr>
+<tr><td class="apx-time">11:00–15:00</td><td><b>房務・兩人一組一帳到底</b><ul><li>在班時成為第 4 組</li><li>4 組作業全場只要 141 分鐘，13:51 完工</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div><div class="apx-n">園藝休假日、割草日都該排在有 H4 的 7 人日。</div></td></tr>
+<tr><td class="apx-time">15:00–16:00</td><td><b>下午茶出餐支援</b></td></tr>
+</tbody></table>
+<p class="apx-g">櫃檯早班　08:00–17:00　正職 2 人 ＋ 替補工讀 1 人</p>
+<table class="apx"><thead><tr><th colspan="2">F1　櫃檯常駐　<span style="font-weight:400;color:var(--muted)">08:00–17:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">08:00–11:00</td><td><b>櫃檯接待・退房結帳</b><ul><li>F2 去餐廳的 08:00–10:00 由 F1 獨守</li><li>此時客人在吃早餐、退房 11:00 才開始，單人足夠</li><li>10:00 F2 回來一起應付退房潮</li></ul><div class="apx-n">F1 全程不能離開櫃檯，這是 F2 能去餐廳的前提。</div></td></tr>
+<tr><td class="apx-time">11:00–15:00</td><td><b>櫃檯常駐・訂房客訴</b><ul><li>接駁期間唯一留守的人</li><li>11:00 向車隊確認場內淨空（園藝要開機具）</li><li>訂房、客訴、電話</li></ul></td></tr>
+<tr><td class="apx-time">15:00–17:00</td><td><b>check-in 尖峰・下午茶點單</b><ul><li>辦理入住 → 行李寄放 → 引導去吃下午茶</li><li>吃完才載進房，避免跑兩趟</li><li>下午茶點單轉給餐廳</li></ul></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">F2　機動　<span style="font-weight:400;color:var(--muted)">08:00–17:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">08:00–10:00</td><td><b>到餐廳支援收餐具・翻桌</b><ul><li>櫃檯與餐廳相鄰，有客人來兩步就回得去</li><li>收餐具、翻桌，與房務三人同場</li></ul><div class="apx-n">釋出的房務人力（H3）去全職包備品。這不增加打掃工時 — 打掃本來就 11:00 才開始。</div></td></tr>
+<tr><td class="apx-time">10:00–10:30</td><td><b>整理餐廳</b></td></tr>
+<tr><td class="apx-time">10:30–11:00</td><td><b>備車</b><ul><li>4 號車就位</li></ul></td></tr>
+<tr><td class="apx-time">11:00–11:30</td><td><b>退房接駁 4 號車</b></td></tr>
+<tr><td class="apx-time">11:30–15:00</td><td><b>回櫃檯・退房結帳尾段</b><ul><li>退房結帳收尾、訂房</li><li>與 F1 兩人顧櫃檯</li></ul></td></tr>
+<tr><td class="apx-time">15:00–17:00</td><td><b>check-in・下午茶點單</b></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">PM1　替補工讀　<span style="font-weight:400;color:var(--muted)">08:00–13:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">08:00–10:00</td><td><b>頂替 F2 的餐廳支援</b><ul><li>櫃檯早班單人日，留守那人走不開，餐廳支援由工讀生頂</li><li>收餐具、翻桌</li></ul><div class="apx-n">只在櫃檯早班單人日出勤：1、4、6、8、11、13、17、20、22、24、27、28 日，每月 12 天。</div></td></tr>
+<tr><td class="apx-time">10:00–10:30</td><td><b>整理餐廳</b></td></tr>
+<tr><td class="apx-time">10:30–11:00</td><td><b>備車</b><ul><li>4 號車就位</li></ul></td></tr>
+<tr><td class="apx-time">11:00–11:30</td><td><b>退房接駁 4 號車</b><ul><li>沒有他，接駁從 5 台掉到 4 台、32 分鐘變 40 分鐘</li></ul><div class="apx-n">徵人條件：必須有駕照、能開場內接駁車。這是這個職位唯一的硬門檻。</div></td></tr>
+<tr><td class="apx-time">11:30–13:00</td><td><b>守櫃檯，讓留守那人去吃飯</b><ul><li>12:00–13:00 讓 F1（或 F2）完整吃一小時</li><li>13:00 晚班到崗接手，無縫交班</li></ul><div class="apx-n">這解決了單人日「9 小時不能離開、沒人換手吃飯」的問題。</div></td></tr>
+</tbody></table>
+<p class="apx-g">園藝外場　07:00–16:00　1 人</p>
+<table class="apx"><thead><tr><th colspan="2">G1　園藝　<span style="font-weight:400;color:var(--muted)">07:00–16:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">07:00–09:00</td><td><b>晨間安靜作業</b><ul><li>外場巡場、落葉清掃</li><li>公共垃圾桶、步道清理</li></ul><div class="apx-n">禁用任何機具。客人還在睡或吃早餐，07:00 開割草機會被客訴。</div></td></tr>
+<tr><td class="apx-time">09:00–11:00</td><td><b>分區輪灌・花圃</b><ul><li>全場分 5 區輪灌，每天 1 區，雨天跳過</li><li>花圃、盆栽約 30 分鐘</li></ul><div class="apx-n">仍然禁用機具，客人還在場。</div></td></tr>
+<tr><td class="apx-time">11:00–11:30</td><td><b>退房接駁 5 號車</b><ul><li>第 5 台車，讓接駁從 40 分鐘縮到 32 分鐘</li></ul></td></tr>
+<tr><td class="apx-time">11:30–14:00</td><td><b>帳外專責 13 帳</b><ul><li>洗腳池、垃圾桶、採光罩、桌椅</li><li>每帳約 11.3 分鐘，150 分鐘做 13 帳</li></ul><div class="apx-n">這 13 帳是房務能否 15:00 前收工的關鍵。割草日改做割草，那 13 帳要還給房務組別 — 所以割草日排在 7 人日。</div></td></tr>
+<tr><td class="apx-time">14:00–15:00</td><td><b>機具保養・備料</b><ul><li>機具清潔、刀具研磨</li><li>隔天備料</li><li>藥劑歸位上鎖、噴藥紀錄簽核</li></ul><div class="apx-n">噴藥只排在每月 2 天休園日 — 藥劑再進入間隔 4–24 小時，15:00 就 check-in，平日間隔不夠。</div></td></tr>
+<tr><td class="apx-time">15:00–16:00</td><td><b>收工具・最後巡場</b><ul><li>客人開始進場，所有機具收起</li><li>最後巡場，確認沒有工具或藥劑留在外場</li></ul></td></tr>
+</tbody></table>
+<p class="apx-g">房務中班　11:00–20:00　4 人，日常在班 3–4</p>
+<table class="apx"><thead><tr><th colspan="2">M1　下午茶主責　<span style="font-weight:400;color:var(--muted)">11:00–20:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">11:00–15:00</td><td><b>房務・兩人一組一帳到底</b><ul><li>11:00 一到就配對開掃，不再先單人掃帳外</li><li>11:00–11:30 與 H3（包完備品）配對，全場兩組</li><li>11:30 早班接駁回來，補成三組</li><li>一帳房內＋帳外做完才換下一帳</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div><div class="apx-n">中班從上班第一分鐘就在掃房，負責的帳數比原案多。</div></td></tr>
+<tr><td class="apx-time">15:00–16:00</td><td><b>下午茶出餐</b><ul><li>早班四人同場，人力最足的一小時</li></ul></td></tr>
+<tr><td class="apx-time">16:00–17:00</td><td><b>下午茶主責（尾段）</b><ul><li>早班 16:00 下班，與 M4 兩人撐到 17:00 下午茶結束</li><li>同時間 P1 在收桌</li></ul></td></tr>
+<tr><td class="apx-time">17:00–17:30</td><td><b>下午茶收場 ＋ 晚餐開場</b><ul><li>與 M4、P1、P2 四人一起：收完剩下的桌、翻成晚餐場</li><li>只有 30 分鐘，17:30 第一段就開餐</li></ul><div class="apx-t">時間吃緊：下午茶收場與晚餐開場擠在同 30 分鐘</div></td></tr>
+<tr><td class="apx-time">17:30–20:00</td><td><b>晚餐出餐（兩段制）</b><ul><li>第一段 17:30–19:00、第二段 19:00–20:30</li><li>訂房時已 email 分配時段，現場不改</li><li>與工讀生 P1 P2 同場</li></ul><div class="apx-n">中班 20:00 下班，最後 30 分鐘交給工讀生 P1 P2 接手。</div></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">M2　晚餐擺盤　<span style="font-weight:400;color:var(--muted)">11:00–20:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">11:00–15:00</td><td><b>房務・兩人一組一帳到底</b><ul><li>11:00 與 H3 配對開掃，11:30 早班歸隊補成三組</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div></td></tr>
+<tr><td class="apx-time">15:00–17:30</td><td><b>晚餐擺盤（接廚房分裝）</b><ul><li>接手 K2 分裝好的蔬菜，約 60 盤</li><li>海鮮與肉類現點現擺，不預擺</li><li>備餐線整理</li></ul><div class="apx-n">蔬菜從擺盤到上桌不到 1 小時。原本廚房 14:30 就擺、放到 17:30 的問題靠這段解決。</div></td></tr>
+<tr><td class="apx-time">17:30–20:00</td><td><b>晚餐出餐</b></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">M3　載客·收桌　<span style="font-weight:400;color:var(--muted)">11:00–20:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">11:00–15:00</td><td><b>房務・兩人一組一帳到底</b><ul><li>11:00 與 H3 配對開掃，11:30 早班歸隊補成三組</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div></td></tr>
+<tr><td class="apx-time">15:00–17:00</td><td><b>載客進房・行李</b><ul><li>客人吃完下午茶才進房（學山區做法）</li><li>與 M4 兩台車</li></ul></td></tr>
+<tr><td class="apx-time">17:00–17:30</td><td><b>晚餐前置</b></td></tr>
+<tr><td class="apx-time">17:30–20:00</td><td><b>晚餐出餐・收桌</b></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">M4　機動　<span style="font-weight:400;color:var(--muted)">11:00–20:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">11:00–15:00</td><td><b>房務・第 4 組</b><ul><li>在班時 11:00 就有三組，全場提早到 13:40 完工</li></ul><div class="apx-t">時間吃緊：完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上</div></td></tr>
+<tr><td class="apx-time">15:00–16:00</td><td><b>載客進房支援</b><ul><li>與 M3 兩台車</li></ul></td></tr>
+<tr><td class="apx-time">16:00–17:00</td><td><b>下午茶尾段第二人</b><ul><li>有他 M2 才能專心擺 60 盤</li></ul></td></tr>
+<tr><td class="apx-time">17:00–17:30</td><td><b>下午茶收場 ＋ 晚餐開場</b><ul><li>與 M1、P1、P2 四人一起收桌翻場</li></ul><div class="apx-t">時間吃緊：下午茶收場與晚餐開場擠在同 30 分鐘</div></td></tr>
+<tr><td class="apx-time">17:30–20:00</td><td><b>晚餐出餐</b></td></tr>
+</tbody></table>
+<p class="apx-g">櫃檯晚班　13:00–22:00　正職 2 人 ＋ 替補工讀 1 人</p>
+<table class="apx"><thead><tr><th colspan="2">N1　櫃檯常駐　<span style="font-weight:400;color:var(--muted)">13:00–22:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">13:00–15:00</td><td><b>交接・check-in 準備</b><ul><li>接早班的未進房帳號、特殊需求</li><li>核對晚餐時段分配表</li></ul></td></tr>
+<tr><td class="apx-time">15:00–17:00</td><td><b>check-in 尖峰</b><ul><li>與 F1 F2 N2 四人同場</li></ul></td></tr>
+<tr><td class="apx-time">17:00–22:00</td><td><b>櫃檯常駐</b><ul><li>酒吧 19:00 開了也至少留 1 人在櫃檯</li></ul></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">N2　酒吧　<span style="font-weight:400;color:var(--muted)">13:00–22:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">13:00–15:00</td><td><b>交接・酒吧備檯</b></td></tr>
+<tr><td class="apx-time">15:00–17:00</td><td><b>check-in・下午茶點單</b></td></tr>
+<tr><td class="apx-time">17:00–19:00</td><td><b>載客進房支援・酒吧開檯準備</b></td></tr>
+<tr><td class="apx-time">19:00–22:00</td><td><b>酒吧營運</b><ul><li>晚間客人找人一律到酒吧</li><li>櫃檯不負責洗碗</li></ul><div class="apx-n">單人日由替補工讀 PM2 顧櫃檯，酒吧與櫃檯才能同時有人。</div></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">PM2　替補工讀　<span style="font-weight:400;color:var(--muted)">19:00–22:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">19:00–22:00</td><td><b>櫃檯晚班單人日的櫃檯值守</b><ul><li>只在櫃檯晚班單人日出勤：2、4、7、9、12、14、19、21、24、26、29、30 日，每月 12 天</li><li>做的是備品需求、諮詢、轉達、隔天退房說明</li><li>客訴、退費、緊急狀況一律對講機呼叫正職</li></ul><div class="apx-n">正職在酒吧（距離遠），調酒與結帳留給他；工讀顧櫃檯讓兩邊同時有人。取代原本的 N3 正職。</div></td></tr>
+</tbody></table>
+<p class="apx-g">工讀生機動組　P1 16:00–22:00 ／ P2 17:00–22:00</p>
+<table class="apx"><thead><tr><th colspan="2">P1　外場機動　<span style="font-weight:400;color:var(--muted)">16:00–22:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">16:00–17:00</td><td><b>下午茶收桌（邊吃邊收）</b><ul><li>客人陸續離席，收一桌清一桌</li><li>餐具直接送回收檯，不洗 —— 夜班統一處理</li></ul></td></tr>
+<tr><td class="apx-time">17:00–17:30</td><td><b>下午茶收場 ＋ 翻成晚餐場</b><ul><li>與 M1 M4 P2 四人一起</li><li>收桌 62 分 ＋ 翻場 20 分 ＝ 82 人分，四人 30 分鐘 ＝ 120 人分 → 餘裕 38 分</li></ul><div class="apx-t">時間吃緊：下午茶收場與晚餐開場擠在同 30 分鐘</div></td></tr>
+<tr><td class="apx-time">17:30–19:00</td><td><b>晚餐第一段出餐</b><ul><li>與中班 M1–M4 同場</li></ul></td></tr>
+<tr><td class="apx-time">19:00–20:00</td><td><b>第一段收桌 ＋ 第二段出餐</b><ul><li>第一段 62 人、約 16 桌，收桌約 32 分鐘（與 M3 一起）</li><li>同時支援第二段出餐</li><li>P2 這小時在洗第一段的餐具</li></ul></td></tr>
+<tr><td class="apx-time">20:00–20:30</td><td><b>第二段晚餐收尾（中班已下班）</b><ul><li>M1–M4 都 20:00 下班，最後 30 分鐘由工讀撐</li><li>出餐收尾、送客、收桌</li></ul><div class="apx-n">這是原本那個「20:00–20:30 沒有接手的人」的缺口。</div></td></tr>
+<tr><td class="apx-time">20:30–22:00</td><td><b>餐廳收場（與 P2 兩人）</b><ul><li>第二段收桌 32 分 ＋ 擦桌掃拖 30 分 ＋ 搬廚具 20 分 ＝ 82 分鐘</li><li>窗口 90 分鐘，一個人只多 8 分鐘；兩個人才有餘裕</li></ul></td></tr>
+</tbody></table>
+<table class="apx"><thead><tr><th colspan="2">P2　內場支援　<span style="font-weight:400;color:var(--muted)">17:00–22:00</span></th></tr></thead><tbody>
+<tr><td class="apx-time">17:00–17:30</td><td><b>下午茶收場 ＋ 翻成晚餐場</b><ul><li>與 M1 M4 P1 四人一起</li><li>四人 120 人分 vs 工作 82 人分 → 餘裕 38 分鐘</li></ul><div class="apx-t">時間吃緊：下午茶收場與晚餐開場擠在同 30 分鐘</div></td></tr>
+<tr><td class="apx-time">17:30–19:00</td><td><b>當場洗下午茶 124 份</b><ul><li>窗口 90 分鐘。30 件／批・8 分的機器約需 80 分鐘，剛好</li><li>洗完歸位，晚餐第二段還能用</li></ul><div class="apx-t">時間吃緊：124 份要 80 分鐘，窗口 90 分鐘，只多 10 分鐘</div><div class="apx-n">下午茶餐具不必堆到半夜。加上 19:00–20:00 再洗掉第一段，夜班只剩第二段的 62 份。</div></td></tr>
+<tr><td class="apx-time">19:00–20:00</td><td><b>洗晚餐第一段 62 份</b><ul><li>第一段 62 人、約 16 桌，P1 與 M3 收桌，P2 接手洗</li><li>62 份 ＝ 3 批、約 48 分鐘，60 分窗口內做得完</li><li>洗完歸位，第二段的餐具就不會不夠</li></ul><div class="apx-n">多洗這一段，夜班只剩第二段的 62 份 ＋ 廚具，22:00–23:30 就收工。</div></td></tr>
+<tr><td class="apx-time">20:00–20:30</td><td><b>第二段晚餐收尾（與 P1）</b></td></tr>
+<tr><td class="apx-time">20:30–22:00</td><td><b>餐廳收場・廚具搬回廚房</b><ul><li>與 P1 分工：一人收桌擦掃、一人搬廚具並整理回收檯</li><li>把第二段的 62 份髒餐具分類堆好，夜班來接手</li></ul><div class="apx-n">夜班只有 1 人，回收檯整理得好不好直接決定他洗得完不完。</div></td></tr>
+</tbody></table>
+<p class="apx-g">夜班　22:00–隔日 06:30　2 人一上一休，現場 1 人</p>
+<table class="apx"><thead><tr><th colspan="2">D1　夜間值班　<span style="font-weight:400;color:var(--muted)">22:00–06:30</span></th></tr></thead><tbody>
+<tr><td class="apx-time">22:00–23:30</td><td><b>洗晚餐第二段 62 份與廚具</b><ul><li>晚餐分兩段，每段約 62 人 —— 全天晚餐只用 124 份</li><li>第一段的 62 份 P2 已在 19:00–20:00 洗掉</li><li>62 份 ＝ 3 批約 48 分 ＋ 廚具 40 分</li></ul><div class="apx-n">工讀已收桌、搬廚具、分類堆好，夜班直接開洗，約 1.5 小時。</div></td></tr>
+<tr><td class="apx-time">23:30–06:00</td><td><b>夜間值班・巡場</b><ul><li>定時巡場</li><li>夜間客人需求應對</li></ul></td></tr>
+<tr><td class="apx-time">06:00–06:30</td><td><b>開機預熱・起粥・交接廚房</b><ul><li>設備預熱，把早餐備製的前段先做掉</li><li>起粥</li></ul><div class="apx-n">廚師 06:30 到崗才能下班。這 30 分鐘是補早餐人力不足的關鍵。</div></td></tr>
+</tbody></table>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m2">‹ 上一頁</button><button class="pagb" data-m="m4">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m4" data-t="房務試算">
+<h2>四、房務：工作範圍與兩人一組試算</h2>
+
+<div class="card">
+  <h3>單帳工時拆解 <span class="t">估算值，待實測</span></h3>
+<table>
+  <thead><tr><th style="width:120px">分類</th><th>項目</th><th style="width:96px">單帳工時</th></tr></thead>
+  <tbody>
+    <tr><td><b>房內・每日</b></td><td>換床 4 床 9 分 · 衛浴 9 分 · 地板吸拖 5 分 · 備品補充與垃圾 4 分</td><td class="num">27 分</td></tr>
+    <tr><td><b>帳外・每日</b></td><td>垃圾桶換袋 2 分 · 桌椅擦拭歸位 4 分 · 洗腳池沖洗 2 分</td><td class="num">8 分</td></tr>
+    <tr><td><b>帳外・週期</b></td><td>洗腳池深刷 4 分 · 採光罩清潔 6 分　<span style="color:var(--muted)">每 3 天輪一次，攤平 3.3 分</span></td><td class="num">10 分</td></tr>
+  </tbody>
+  <tfoot><tr><td colspan="2">每帳合計（週期項目攤平後）</td><td class="num">38.3 人分鐘</td></tr></tfoot>
+</table>
+  <p class="note">帳外工作不必每帳每天全做。<b>採光罩和洗腳池深刷排成每 3 天輪一次</b>，省下來的工時就是能不能在 15:00 前收工的關鍵。</p>
+</div>
+
+<div class="card">
+  <h3>兩人一組、一帳做完才換下一帳 <span class="t">常態日，最常見的 20 天</span></h3>
+<table>
+  <thead><tr><th style="width:150px">誰</th><th style="width:116px">時段</th><th style="width:84px">組數</th><th>做什麼</th></tr></thead>
+  <tbody>
+    <tr class="okrow"><td><b>H3 ＋ 中班 M1–M3</b></td><td class="time">11:00–11:30</td><td class="num">2 組</td><td><b>中班一上班就配對開掃</b>。H3 已把備品包完，不用開車</td></tr>
+    <tr><td>＋ 早班 H1 H2 歸隊</td><td class="time">11:30–14:34</td><td class="num">3 組</td><td>接駁結束，補成三組，一帳做完才換下一帳</td></tr>
+    <tr><td>園藝 G1（平行）</td><td class="time">11:30–14:00</td><td class="num">單人</td><td>帳外專責 13 帳：洗腳池、垃圾桶、採光罩、桌椅</td></tr>
+  </tbody>
+  <tfoot><tr><td colspan="2">組別工作量 1,041 人分鐘</td><td class="num">19.8 分／帳</td><td>31 帳房內全套 ＋ 18 帳的帳外</td></tr></tfoot>
+</table>
+  <p class="note">11:00 開工、<b>14:34 完工，離 15:00 有 26 分鐘緩衝</b>（房內以 27 分估）。兩人在同一帳無法完全平行（衛浴一次只進得去一個人），已用 85% 效率折算。</p>
+</div>
+
+<div class="card">
+  <h3>敏感度：房內工時改成別的數字會怎樣 <span class="t">4＋4 編制・常態日</span></h3>
+<table>
+  <thead><tr><th style="width:110px">房內／帳</th><th style="width:118px">每帳總工時</th><th style="width:112px">組別停留</th><th style="width:120px">組別工作量</th><th style="width:90px">完工</th><th>結果</th></tr></thead>
+  <tbody>
+    <tr class="okrow"><td class="num">15 分</td><td class="num">26.3 人分</td><td class="num">12.7 分</td><td class="num">669 人分</td><td class="num">13:21</td><td>緩衝 99 分</td></tr>
+    <tr class="okrow"><td class="num">18 分</td><td class="num">29.3 人分</td><td class="num">14.5 分</td><td class="num">762 人分</td><td class="num">13:39</td><td>緩衝 81 分</td></tr>
+    <tr class="okrow"><td class="num">20 分</td><td class="num">31.3 人分</td><td class="num">15.6 分</td><td class="num">824 人分</td><td class="num">13:51</td><td>緩衝 69 分</td></tr>
+    <tr class="okrow"><td class="num">22 分</td><td class="num">33.3 人分</td><td class="num">16.8 分</td><td class="num">886 人分</td><td class="num">14:03</td><td>緩衝 57 分</td></tr>
+    <tr class="okrow"><td class="num">25 分</td><td class="num">36.3 人分</td><td class="num">18.6 分</td><td class="num">979 人分</td><td class="num">14:21</td><td>緩衝 39 分</td></tr>
+    <tr><td class="num"><b>27 分（本表假設）</b></td><td class="num">38.3 人分</td><td class="num">19.8 分</td><td class="num">1,041 人分</td><td class="num">14:34</td><td>緩衝 26 分</td></tr>
+    <tr><td class="num">30 分</td><td class="num">41.3 人分</td><td class="num">21.5 分</td><td class="num">1,134 人分</td><td class="num">14:52</td><td>緩衝 8 分</td></tr>
+    <tr class="hl"><td class="num">33 分</td><td class="num">44.3 人分</td><td class="num">23.3 分</td><td class="num">1,227 人分</td><td class="num">15:10</td><td><b>超時 11 分</b></td></tr>
+  </tbody>
+</table>
+  <p class="note"><b>27 分是我按飯店標準房推的，不是你的數字。</b>露營帳篷空間小、沒地毯、備品少，實際很可能是 18–22 分鐘。這個數字往下走只有好處，往上走到 33 分才會垮。</p>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m3">‹ 上一頁</button><button class="pagb" data-m="m5">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m5" data-t="接駁車">
+<h2>五、接駁車要幾台</h2>
+
+<div class="card">
+  <h3>退房 11:00 起，19 帳需接駁</h3>
+<table>
+  <thead><tr><th style="width:80px">台數</th><th style="width:110px">每台趟次</th><th style="width:100px">耗時</th><th style="width:100px">結束時間</th><th>評語</th></tr></thead>
+  <tbody>
+    <tr class="hl"><td class="num">3 台</td><td class="num">7 趟</td><td class="num">56 分</td><td class="num">11:56</td><td>太久，房務 11:30 已要開工</td></tr>
+    <tr><td class="num">4 台</td><td class="num">5 趟</td><td class="num">40 分</td><td class="num">11:40</td><td>可接受，但沒有備援</td></tr>
+    <tr class="okrow"><td class="num"><b>5 台</b></td><td class="num">4 趟</td><td class="num">32 分</td><td class="num">11:32</td><td><b>建議。一台故障還剩 4 台撐 40 分鐘</b></td></tr>
+    <tr><td class="num">6 台</td><td class="num">4 趟</td><td class="num">32 分</td><td class="num">11:32</td><td>跟 5 台一樣快，多買不划算</td></tr>
+    <tr><td class="num">7 台</td><td class="num">3 趟</td><td class="num">24 分</td><td class="num">11:24</td><td>要再快只能一次跳到 7 台</td></tr>
+  </tbody>
+</table>
+  <p class="note">5 台的駕駛：房務早班 H1 H2、<b>廚房輪值 1 人</b>、櫃檯 F2（單人日由 PM1 頂）、園藝 G1。<b>園藝休假那 6 天只有 4 台 ＝ 40 分鐘</b>，但那 6 天都是餘裕日、房務多一人，吸收得掉。</p>
+</div>
+
+<div class="warn">
+  <h3>要先確認：一台車裝不裝得下一帳 4 人＋行李</h3>
+  <p>上面所有數字都建立在「一趟載走一帳」。如果一帳 4 人加行李要跑兩趟，趟次直接翻倍：</p>
+<table>
+  <thead><tr><th style="width:80px">台數</th><th style="width:110px">總趟次</th><th style="width:100px">耗時</th><th>結束時間</th></tr></thead>
+  <tbody>
+    <tr class="hl"><td class="num">4 台</td><td class="num">10 趟</td><td class="num">80 分</td><td class="num">12:20</td></tr>
+    <tr class="hl"><td class="num">5 台</td><td class="num">8 趟</td><td class="num">64 分</td><td class="num">12:04</td></tr>
+    <tr class="hl"><td class="num">6 台</td><td class="num">7 趟</td><td class="num">56 分</td><td class="num">11:56</td></tr>
+  </tbody>
+</table>
+  <p>露營客的行李量通常不小（睡袋、保冷箱、折疊椅）。<b>建議選 6 人座以上、後方有置物空間的電動車，或加掛小拖車</b>，確保一趟一帳。否則 5 台變成 64 分鐘，整條房務線往後推 30 分鐘，15:00 一定收不了工。</p>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m4">‹ 上一頁</button><button class="pagb" data-m="m6">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m6" data-t="園藝">
+<h2>六、園藝：週期表與噴藥規則</h2>
+
+<div class="card">
+  <h3>不是每天都割草澆水，空出來的時間接帳外</h3>
+<table>
+  <thead><tr><th style="width:110px">工作</th><th style="width:150px">頻率</th><th>排在哪</th></tr></thead>
+  <tbody>
+    <tr><td>巡場·落葉·公共垃圾桶</td><td>每天</td><td>07:00–09:00（安靜時段）</td></tr>
+    <tr><td>澆水</td><td><b>分 5 區輪灌，每天 1 區</b>，雨天跳過</td><td>09:00–11:00（安靜時段）</td></tr>
+    <tr><td>花圃·盆栽</td><td>每天 30 分鐘</td><td>09:00–11:00</td></tr>
+    <tr><td>退房接駁 5 號車</td><td>每天</td><td>11:00–11:32</td></tr>
+    <tr class="okrow"><td><b>帳外專責 13 帳</b></td><td><b>非割草日（約每週 4–5 天）</b></td><td>11:30–14:00</td></tr>
+    <tr><td>割草</td><td>旺季每週 2–3 次，淡季每週 1 次</td><td>11:30–14:00（場內淨空才能開機具）</td></tr>
+    <tr><td>修剪</td><td>每月輪區</td><td>11:30–14:00</td></tr>
+    <tr class="hl"><td><b>噴藥</b></td><td><b>只排休園日</b></td><td>見下方</td></tr>
+    <tr><td>機具保養·備料</td><td>每天</td><td>14:00–15:00</td></tr>
+  </tbody>
+</table>
+  <p class="note">07:00 開割草機會被客訴。一天只有 <b>11:00–15:00</b> 場內淨空（退房完到 check-in 前），吵的機具只能擠在這段。<b>割草日那天，那 13 帳的帳外就要回到房務組別身上</b>——所以割草日最好排在餘裕日。</p>
+</div>
+
+<div class="warn">
+  <h3>噴藥：11:00–15:00 也不能噴</h3>
+  <p>藥劑有「再進入間隔」，噴完要等一段時間人才能進該區域，常見 4 到 24 小時，確切時數看該藥劑標示。但你 15:00 就開始 check-in，客人馬上走在草地上、小孩去小動物區玩 —— <b>中午噴、下午放人進來，間隔根本不夠</b>。</p>
+  <p><b>噴藥一律排在每月那 2 天休園日。</b>平日真要噴，只能噴客人到不了的地方（外圍邊坡、停車場外緣、圍籬外），而且要立警示牌。</p>
+  <p>還要定三件事：① 用什麼藥劑（廚房與下午茶場地就在外場旁，有餐飲區限制）② 小動物區能不能噴 ③ 藥劑櫃鑰匙誰管、噴藥紀錄誰簽。</p>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m5">‹ 上一頁</button><button class="pagb" data-m="m7">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m7" data-t="交接點">
+<h2>七、交接點清單</h2>
+<div class="card">
+<table>
+  <thead><tr><th style="width:92px">時間</th><th style="width:106px">交出</th><th style="width:106px">接手</th><th>交接物</th></tr></thead>
+  <tbody>
+    <tr><td class="time">06:30</td><td class="who">D1</td><td class="who">K1 K2</td><td>乾淨餐廳與廚具、已開機預熱的設備、已起的粥</td></tr>
+    <tr><td class="time">08:00</td><td class="who">H2 H4</td><td class="who">K1 K2</td><td>備餐支援結束，兩人退出廚房回餐廳收餐</td></tr>
+    <tr><td class="time">10:30</td><td class="who">H3</td><td class="who">廚房輪值 H1 H2 F2 G1</td><td><b>包好的 60+ 組備品</b>，分配到 5 台車上，標明帳號與加床</td></tr>
+    <tr><td class="time">11:00</td><td class="who">F1</td><td class="who">G1 ＋ 全車隊</td><td><b>場內淨空確認</b>：最後一帳離場了沒。沒確認就開割草機＝對著客人開</td></tr>
+    <tr><td class="time">11:00</td><td class="who">H3</td><td class="who">M1–M4</td><td>備品已包完上車，H3 直接與中班配對，<b>11:00 兩組開掃</b></td></tr>
+    <tr><td class="time">11:30</td><td class="who">H1 H2</td><td class="who">各組</td><td>接駁完成歸隊，<b>補成三組</b>；回報已完成的帳號，接著往下一帳</td></tr>
+    <tr><td class="time">14:00</td><td class="who">G1</td><td class="who">房務各組</td><td>帳外做完哪 13 帳、哪幾帳的採光罩今天輪到</td></tr>
+    <tr><td class="time">15:00</td><td class="who">K1 K2</td><td class="who">M2</td><td><b>分裝好的蔬菜</b>（層架位置、份數）、湯底狀態、肉品海鮮庫存</td></tr>
+    <tr><td class="time">15:00</td><td class="who">G1</td><td class="who">F1 N1</td><td>今天噴了哪一區、哪裡還不能踩</td></tr>
+    <tr><td class="time">16:00</td><td class="who">H1–H4</td><td class="who">M1 M4 · P1 P2</td><td>下午茶剩餘客數、未出的單；<b>工讀生到崗，開始邊收邊洗</b></td></tr>
+    <tr><td class="time">17:00</td><td class="who">F1 F2</td><td class="who">N1 N2</td><td>未進房帳號、特殊需求、晚餐時段分配表</td></tr>
+    <tr><td class="time">17:00</td><td class="who">M1 M4</td><td class="who">P1 P2</td><td>下午茶結束，<b>30 分鐘翻場</b>：剩餘餐具、桌位配置、第一段訂位名單</td></tr>
+    <tr class="okrow"><td class="time">20:00</td><td class="who">M1–M4</td><td class="who">P1 P2</td><td>中班下班，<b>第二段晚餐最後 30 分鐘交工讀生</b>：未出的餐、在場桌號</td></tr>
+    <tr><td class="time">22:00</td><td class="who">N1 N2 · P1 P2</td><td class="who">D1</td><td>酒吧結帳、鑰匙、在場客數；<b>餐廳已收乾淨、廚具已搬回，夜班只接洗碗收尾</b></td></tr>
+  </tbody>
+</table>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m6">‹ 上一頁</button><button class="pagb" data-m="m8">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m8" data-t="缺席代班">
+<h2>八、缺席代班</h2>
+
+<p class="note" style="margin:0 0 18px">
+  常態日與餘裕日<b>只講房務的人數差異</b>。其他組也會有人休假，工作要有人接 —— 這一頁把每一組的缺席都列出來。
+</p>
+
+<div class="card">
+  <h3>會改變工作分配的只有四個變數</h3>
+<table>
+  <thead><tr><th style="width:130px">組別</th><th style="width:150px">變數</th><th style="width:96px">天數／月</th><th>差在哪</th></tr></thead>
+  <tbody>
+    <tr><td><b>房務早班</b></td><td>H4 在／不在</td><td class="num">4 ／ 24</td><td>H4 在時 07:00–08:00 多一人支援廚房備餐，11:00 起多一條人力</td></tr>
+    <tr><td><b>房務中班</b></td><td>M4 在／不在</td><td class="num">4 ／ 24</td><td>M4 在時下午茶尾段有第二人，M2 才能專心擺盤</td></tr>
+    <tr><td><b>廚房</b></td><td>在班 3 人／2 人</td><td class="num">10 ／ 18</td><td>三位都是廚師，任何兩人都開得起熱檯與冷檯。接駁車手由當天在班的廚師輪值，<b>不受誰休假影響</b></td></tr>
+    <tr><td><b>園藝</b></td><td>G1 在／不在</td><td class="num">22 ／ 6</td><td>G1 不在，帳外 13 帳要由房務組別吸收</td></tr>
+  </tbody>
+</table>
+  <p class="note">
+    <b>櫃檯早晚班不是變數</b> —— 有 PM1 PM2 替補，每天都是 2 人。
+    <b>夜班</b>兩人兩天一輪，每天恰 1 人。<b>工讀 P1 P2</b> 是班位，每天都要有人。這三組的工作分配不隨休假改變。
+  </p>
+</div>
+
+<div class="card">
+  <h3>一個月 28 個營業日，實際有 5 種組合</h3>
+<table>
+  <thead><tr><th style="width:110px">房務</th><th style="width:130px">廚房</th><th style="width:96px">園藝</th><th style="width:80px">天數</th><th>日期</th></tr></thead>
+  <tbody>
+    <tr><td>常態日</td><td>2 人</td><td>在班</td><td class="num">13 天</td><td class="num">1、2、5、6、9、11、12、17、18、20、21、25、27</td></tr>
+    <tr><td>常態日</td><td>3 人全到</td><td>在班</td><td class="num">7 天</td><td class="num">4、8、13、22、24、28、29</td></tr>
+    
+    <tr><td>餘裕日</td><td>2 人</td><td><b>休假</b></td><td class="num">3 天</td><td class="num">3、7、14</td></tr>
+    <tr><td>餘裕日</td><td>3 人全到</td><td><b>休假</b></td><td class="num">3 天</td><td class="num">19、26、30</td></tr>
+    <tr><td>餘裕日</td><td>2 人</td><td>在班</td><td class="num">2 天</td><td class="num">10、23</td></tr>
+    
+  </tbody>
+</table>
+  <p class="note">流程圖的三個分頁只畫房務那一軸（最多人、時間最緊）。廚房與園藝的差異用下面的代班表處理，不另外畫圖。</p>
+</div>
+
+<div class="card">
+  <h3>每一組缺席時，誰接什麼</h3>
+<table>
+  <thead><tr><th style="width:132px">誰不在</th><th style="width:84px">天數／月</th><th style="width:230px">他的工作誰接</th><th>量化影響</th></tr></thead>
+  <tbody>
+    <tr><td><b>廚房 任一人</b></td><td class="num">18 天</td><td>剩下兩位各守一檯，接駁車手由其中一位輪值</td><td>早餐備製 330 → 240 人分。<b>三位都是廚師，兩條線照常開</b></td></tr>
+    
+    <tr><td><b>園藝 G1</b></td><td class="num">6 天</td><td>帳外 13 帳由餘裕日的落單者吸收；巡場澆水由 H4 代 15 分鐘</td><td>餘裕日完工 14:23，仍在範圍內。<b>所以他的休假全排餘裕日</b></td></tr>
+    <tr><td>房務早班 1 人</td><td class="num">24 天</td><td>三人分攤公區，H4 的廚房備餐支援取消</td><td>就是常態日，完工 14:34</td></tr>
+    <tr><td>房務中班 1 人</td><td class="num">24 天</td><td>與早班併組，三組共六人</td><td>就是常態日，完工 14:34</td></tr>
+    <tr><td>櫃檯早班 1 人</td><td class="num">12 天</td><td>工讀 PM1 頂 08:00–13:00</td><td>餐廳支援、接駁 4 號車、11:30–13:00 換飯都有人</td></tr>
+    <tr><td>櫃檯晚班 1 人</td><td class="num">12 天</td><td>工讀 PM2 頂 19:00–22:00</td><td>櫃檯與酒吧同時有人</td></tr>
+    <tr><td>夜班</td><td class="num">—</td><td>兩人兩天一輪</td><td>每天恰 1 人，不需代班</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="good">
+  <h3>廚房已補強：助理升為第三位廚師</h3>
+  <p>原本 K1 K2 是廚師、KA 是助理，K1 或 K2 任一人休假就只剩「1 位廚師 ＋ 1 位助理」，
+  而早餐 06:30–08:00 要同時開熱檯與冷檯兩條線 —— 一個月有 12 天卡在這裡。</p>
+  <p><b>決議：把助理當第三位廚師訓練，薪資與職稱跟著調（KA → K3）。</b>三位輪守熱檯／冷檯／機動，
+  任何兩人組合都開得起兩條線，12 天的弱日消失。</p>
+  <p>連帶改善一件事：<b>接駁車手從「固定由助理開」變成「當天在班的廚師輪值」</b>。
+  11:00–11:32 廚房正值員工餐時段，兩人在班也抽得出一位 ——
+  所以接駁<b>固定 5 台、32 分鐘</b>，不再有原本 KA 休假那 6 天掉到 4 台的問題。</p>
+</div>
+
+<div class="warn">
+  <h3>仍然存在：06:30–07:00 那 30 分鐘只有 2 個人</h3>
+  <p>H2 要 07:00 才到，餘裕日的 H4 也是。開機、取料、起鍋都擠在前 30 分鐘。</p>
+  <p>升為三位廚師解決了「能不能開兩條線」，但沒解決「人夠不夠」。
+  <b>建議仍是把粥、滷味、中式小菜移到前一天收班前備好</b>，並讓夜班 06:00–06:30 先開機起粥（已排進流程圖）。</p>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m7">‹ 上一頁</button><button class="pagb" data-m="m9">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m9" data-t="決策紀錄">
+<h2>九、決策紀錄</h2>
+
+<p class="note" style="margin:0 0 18px">這一頁收的是「問過、答過、定案」的判斷，不是每天要看的操作表。操作表在前面各頁。</p>
+
+<div class="card">
+  <h3>這份排班是怎麼長出來的</h3>
+  <table>
+    <thead><tr><th style="width:60px">輪次</th><th style="width:180px">那一輪定了什麼</th><th>後來被改掉的部分</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>班別骨架、早餐品項、晚餐兩段、不供宵夜</td><td>蔬菜預擺（改成廚房只分裝）</td></tr>
+      <tr><td class="num">2</td><td>房務早／中班各加 1 人成 4＋4</td><td>發現原 3＋3 編制「6 人在班」一個月 0 天</td></tr>
+      <tr><td class="num">3</td><td>加園藝 1 人、噴藥只排休園日</td><td>—</td></tr>
+      <tr><td class="num">4</td><td>房務納入帳外、兩人一組、接駁 5 台</td><td>接駁「30 分鐘」改成 32 分鐘（原算錯）</td></tr>
+      <tr><td class="num">5</td><td>中班 11:00 直接配對開掃</td><td>「7 人日浪費一個人」推翻 —— 落單者效率最高</td></tr>
+      <tr><td class="num">6</td><td>輪休重排、全員 22 人一起排</td><td>發現櫃檯一個月 22 天是單人</td></tr>
+      <tr><td class="num">7</td><td>加晚班工讀機動組、下午茶收洗</td><td>20:00–20:30 缺口由工讀補上</td></tr>
+      <tr><td class="num">8</td><td>洗碗移夜班、砍 N3 正職改 PM2 工讀</td><td>晚班一度決定用正職，確認工讀好請後改掉</td></tr>
+      <tr><td class="num">9</td><td>全面重算、改名常態日／餘裕日</td><td>晚餐「248 份」改回 124（分兩段是分開吃）</td></tr>
+      <tr><td class="num">10</td><td>補缺席代班、助理升為第三位廚師</td><td>原本只設計房務的人數差異，其他組沒處理；接駁車手改成廚房輪值</td></tr>
+    </tbody>
+  </table>
+  <p class="note">每一輪的細節都在下面六張表裡。數字變動的原因都有記錄 —— 如果有人拿舊版本來對，看這裡。</p>
+</div>
+
+
+<div class="card">
+  <h3>餐飲</h3>
+<table>
+  <thead><tr><th style="width:230px">問題</th><th style="width:150px">結論</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td>廚房要不要先把晚餐蔬菜擺盤？</td><td><b>不要，只洗切分裝</b></td><td>擺盤移到 M2 的 15:00 後，蔬菜從擺盤到上桌不到 1 小時。原案廚房 14:30 擺、放到 17:30 才上桌</td></tr>
+    <tr><td>下午茶 124 份餐具誰收、誰洗？</td><td><b>工讀 P1 收，夜班統一洗</b></td><td>原本沒人排這件事。下午茶 17:00 結束、晚餐 17:30 開餐，中間只有 30 分鐘翻場</td></tr>
+    <tr><td>洗碗要不要當場做？</td><td><b>早餐與下午茶當場洗，晚餐交夜班</b></td><td>餐具備量足夠，白天不必回洗。早餐 124 由廚房 10:00–11:00 洗（放到半夜會乾掉）；下午茶 124 與晚餐第一段 62 由 <b>P2 在 17:30–20:00 洗</b>；夜班只接晚餐第二段的 62 份 ＋ 廚具，22:00–23:30 收工</td></tr>
+    <tr><td>晚班機動還需要 2 個人嗎？</td><td><b>要，而且 P2 排 17:00–22:00</b></td><td>P1 的工作（收桌、出餐、20:00 缺口、收場）全部保留。P2 有三個非他不可的時段：<b>17:00–17:30 翻場</b>（三人只多 8 分鐘，四人才有 38 分鐘餘裕）、<b>17:30–19:00 洗下午茶</b>（正職都在出餐，走不開）、<b>20:30–22:00 收場</b>（一個人 82 分鐘、窗口 90 分鐘，只多 8 分鐘）</td></tr>
+    <tr><td>下午茶餐具能不能有人當場洗？</td><td><b>能，P2 17:30–19:00 洗</b></td><td>那個時段第一段晚餐只服務約 62 人（16 桌），M1–M4 ＋ P1 五人綽綽有餘，抽工讀去洗不影響出餐。換到三件事：夜班從一整天的量降到只剩 62 份、回收檯不再堆積、17:00–17:30 翻場缺口同時補掉</td></tr>
+    <tr><td>20:00–20:30 晚餐缺口怎麼補？</td><td><b>工讀生接手，不延長中班</b></td><td>中班 20:00 下班但晚餐 20:30 才結束，是時間問題不是人數問題。工讀做到 22:00 剛好接上</td></tr>
+    <tr><td>櫃檯能不能分擔餐廳？</td><td><b>可行，但效益不在打掃</b></td><td>F2 08:00–10:00 去餐廳，釋出 H3 全職包備品。打掃本來就 11:00 才開始，真正換到的是備品 11:00 前包得完、接駁車回程能帶進場</td></tr>
+    <tr><td>要不要供宵夜？</td><td><b>不供</b></td><td>對標的 3JD 也沒有。廚房 20:30 後全鎖</td></tr>
+    <tr><td>晚餐要不要分兩段？</td><td><b>分兩段，訂房時就分流</b></td><td>17:30–19:00 與 19:00–20:30，email 告知時段，現場不處理臨時調段</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+  <h3>房務</h3>
+<table>
+  <thead><tr><th style="width:230px">問題</th><th style="width:150px">結論</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td>兩人一組、一帳做完才換下一帳，可行嗎？</td><td><b>可行，每帳 19.8 分鐘</b></td><td>11:00 開工、14:34 完工，緩衝 26 分。<b>前提是園藝平行包辦 13 帳的帳外</b></td></tr>
+    <tr><td>中班 11:00 直接開掃，還是先單人掃帳外？</td><td><b>直接開掃</b></td><td>完工只快 2 分鐘（舊案單人作業沒有配對損耗，剛好抵銷），但中班負責的帳數變多、少一個交接</td></tr>
+    <tr><td>38.3 分鐘是員工站在一帳裡的時間嗎？</td><td><b>不是，是人分鐘</b></td><td>一人獨做一帳要 38.3 分；兩人一組做全套 22.5 分；組別實際每帳停留 19.8 分（帳外有 13 帳由園藝先做掉）</td></tr>
+    <tr><td>房務 3＋3 編制夠嗎？</td><td><b>不夠，要 4＋4</b></td><td>嚴格兩人一組後，5 個人只能編 2 組，任何房內工時下都做不完</td></tr>
+    <tr><td>帳外工作要每帳每天全做嗎？</td><td><b>不用，採光罩與洗腳池深刷 3 天一輪</b></td><td>攤平後每帳 11.3 分鐘。全做的話每帳 18 分，會吃掉全部緩衝</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+  <h3>輪休</h3>
+<table>
+  <thead><tr><th style="width:230px">問題</th><th style="width:150px">結論</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td>休園那 2 天算在月休 8 天裡嗎？</td><td><b>算</b></td><td>每人只剩 6 天個人休假要排進 28 個營業日。若改成額外給，房務早班 4 人就是 32 個休假人日 &gt; 28 天，排不開</td></tr>
+    <tr><td>輪休的形狀能不能改得更好？</td><td><b>不能，已是數學極限</b></td><td>48 個休假人日攤在 28 天，<b>常態日無論怎麼排都至少 20 天</b>。能改的只有位置</td></tr>
+    <tr><td>餘裕日是不是浪費一個人？</td><td><b>不是，他是效率最高的</b></td><td>落單者全程做單人帳外、沒有配對損耗，把帳外全吃掉讓三組只做房內。<b>餘裕日比常態日快 35 分鐘</b></td></tr>
+    <tr><td>園藝的休假日要不要對齊？</td><td><b>要，全部釘在餘裕日</b></td><td>園藝不在時 常態日會拖到 15:03（超時 3 分）；排在餘裕日是 14:23</td></tr>
+    <tr><td>哪些人的休假不能撞在一起？</td><td><b>櫃檯 F2 與園藝 G1</b></td><td>兩人都是接駁車手，同日休就少兩台。廚房那位車手是輪值的，不受個人休假影響，所以不列入</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+  <h3>接駁與車輛</h3>
+<table>
+  <thead><tr><th style="width:230px">問題</th><th style="width:150px">結論</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td>接駁車要幾台？</td><td><b>5 台</b></td><td>19 帳、每趟 8 分鐘，5 台跑 4 趟 ＝ 32 分鐘。<b>6 台還是 4 趟，多買不划算</b>；一台故障還剩 4 台撐 40 分鐘</td></tr>
+    <tr><td>備品要不要專車運送？</td><td><b>不用</b></td><td>接駁是載客「出場」，19 個回程全是空車。車後放備品箱順路送，車上放得下 6 組就只需 6 個回程</td></tr>
+    <tr><td>哪些帳自行退房？</td><td><b>入口右手邊 7 帳 ＋ 左手邊 5 帳</b></td><td>距離近，共 12 帳。31 帳全接駁的話單車要 4 小時以上。<b>必須在 check-in 時就說明</b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+  <h3>園藝</h3>
+<table>
+  <thead><tr><th style="width:230px">問題</th><th style="width:150px">結論</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td>割草日要不要也對齊 餘裕日？</td><td><b>不用</b></td><td>園藝只要從割草時間撥 30 分鐘做 2 帳帳外就來得及（常態日 14:58）。排成半割草半帳外更寬鬆</td></tr>
+    <tr><td>噴藥能不能排平日？</td><td><b>不能，只排休園日</b></td><td>藥劑再進入間隔 4–24 小時，但 15:00 就開始 check-in，客人馬上走在草地上</td></tr>
+    <tr><td>吵的機具什麼時候能開？</td><td><b>只有 11:00–15:00</b></td><td>一天只有這 4 小時場內淨空（退房完到 check-in 前）。07:00 開割草機會被客訴</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+  <h3>人力編制</h3>
+<table>
+  <thead><tr><th style="width:230px">問題</th><th style="width:150px">結論</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td>19:00–22:00 能不能從別的班調人？</td><td><b>不能</b></td><td>20:00 後全場只剩 4 個職務位，其中 P1 P2 綁死在收場洗碗。櫃檯與酒吧距離遠，一個人不可能兼顧</td></tr>
+    <tr><td>櫃檯要加正職還是加工讀？</td><td><b>早晚班都用替補工讀</b></td><td>缺口是固定時段固定天數（早班 08:00–13:00、晚班 19:00–22:00，各 12 天），正職的彈性用不上。<b>一度決定晚班用正職（N3），在確認「附近工讀很好請」之後改掉</b> —— 正職約 234 小時／月，PM2 只要 36 小時／月</td></tr>
+    <tr><td>加完之後呢？</td><td><b>櫃檯早晚班每天都是 2 人</b></td><td>早班 2 正職 ＋ PM1、晚班 2 正職 ＋ PM2。接駁維持 4–5 台，早班單人日的吃飯問題也解掉</td></tr>
+    <tr><td>砍掉 N3 會失去什麼？</td><td><b>check-in 與載客都還夠</b></td><td>check-in 從 4–5 人變 3–4 人（需求 155 分、供給 ≥360 人分）；載客從 3 台變 2 台（需求 19 趟、供給 37 趟）。真正換掉的只有 19:00–22:00 那 3 小時的櫃檯，由工讀頂</td></tr>
+    <tr><td>廚房助理要不要升為廚師？</td><td><b>要，KA → K3</b></td><td>原本 K1 或 K2 休假就只剩「1 廚師 ＋ 1 助理」，一個月 12 天開不起兩條早餐線。升為第三位廚師後三人輪守熱檯／冷檯／機動，任兩人都能開。<b>薪資與職稱跟著調</b></td></tr>
+    <tr><td>接駁第 5 台車誰開？</td><td><b>廚房輪值，不綁個人</b></td><td>11:00–11:32 廚房正值員工餐時段，兩人在班也抽得出一位。改成輪值後接駁<b>固定 5 台、32 分鐘</b>，不再有原本助理休假那 6 天掉到 4 台的問題</td></tr>
+    <tr><td>PM1 的徵人門檻？</td><td><b>要有駕照</b></td><td>他要開接駁 4 號車。沒有他，接駁從 32 分鐘掉回 40 分鐘，房務開工跟著延後。PM2 沒有這個門檻</td></tr>
+  </tbody>
+</table>
+  <p class="note">
+    <b>加人成本</b>：<b>不加正職</b>。PM1 約 60 小時／月（12 天 × 5 小時）＋ PM2 約 36 小時／月（12 天 × 3 小時）。
+    落地時要做的三件事：① <b>PM1 PM2 的班固定排在各自的 12 個單人日</b>，不能變成「有空才來」② <b>配對講機</b>，PM2 顧櫃檯時正職在酒吧要隨叫隨到，並在櫃檯放一張「哪些事要呼叫」的卡③ 4 日與 24 日早晚都要工讀，可同一人做兩班或分兩人。
+  </p>
+</div>
+
+<div class="warn">
+  <h3>我推翻過自己的四個結論</h3>
+  <p><b>一｜接駁「30 分鐘完成」是我算錯了。</b>19 帳 ÷ 3 組車 × 8 分鐘 ＝ 51 分鐘。後來加到 5 台才是 32 分鐘。</p>
+  <p><b>二｜「3＋3 編制有 6 人在班」是不存在的日子。</b>我前兩版的工時試算都拿它當常態，實際上一個月 0 天 —— 3 人每人 6 天個人休假，18 天只有 2 人在班。真正的常態是 5 人、最差 4 人。</p>
+  <p><b>三｜「餘裕日浪費一個人」完全相反。</b>我的模型只讓落單者在 11:00–11:30 做事，漏算了後面三個半小時。修正後他是效率最高的那一個。</p>
+  <p><b>四｜「晚餐 248 份」是我把分兩段理解錯了。</b>分兩段是把 124 人<u>分開</u>吃，每段約 62 人、16 桌，晚餐全天只用 124 份。連帶兩個數字也錯了：晚餐收桌我一直用 31 桌算（應為 16 桌），夜班洗碗量灌水一倍。</p><p style="margin-top:10px">留著是因為：如果之後有人拿舊版本的數字來對，才知道哪些已經被改掉。</p>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m8">‹ 上一頁</button><button class="pagb" data-m="m10">下一頁 ›</button></div>
+</section>
+<section class="mod" id="m10" data-t="待辦">
+<h2>十、剩下的問題</h2>
+
+<div class="good">
+  <h3>17:00–17:30 翻場 — 已解決</h3>
+  <p>下午茶 17:00 結束、晚餐 17:30 開餐，要收完 31 桌並翻場，工作量 <b>82 人分鐘</b>。</p>
+  <p>原本 M1、M4、P1 三人 ＝ 90 人分，只多 8 分鐘。<b>P2 提早到 17:00 後變成四人 ＝ 120 人分，餘裕 38 分鐘。</b></p>
+</div>
+
+<div class="warn">
+  <h3>一｜餐具備量要分品項算</h3>
+  <p>一天總共會用到 372 份（早餐 124 ＋ 下午茶 124 ＋ 晚餐 124），但那不等於要備 372 套 —— 三餐都當天洗掉，而且小盤小杯和晚餐餐盤不是同一種。<b>要分品項各自算最大同時在外量</b>：</p>
+  <table>
+    <thead><tr><th style="width:150px">品項</th><th style="width:180px">最大同時在外</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td>下午茶 set</td><td class="num">124 套</td><td>15:00 用、17:30–19:00 由 P2 洗掉，不過夜</td></tr>
+      <tr><td>晚餐餐盤</td><td class="num">124 套</td><td><b>分兩段是把 124 人分開吃</b>，每段約 62 人。第一段的 62 份要等 19:00 後才洗，所以要備兩批</td></tr>
+      <tr><td>早餐 buffet 器皿</td><td class="num">124 套</td><td>10:00–11:00 當場洗，可與下午茶共用同款</td></tr>
+    </tbody>
+  </table>
+  <p>另外要確認 <b>回收檯夠不夠大</b> —— 現在最多只會堆到第二段的 62 份，壓力不大，但下午茶 17:00–17:30 一次收 31 桌時會瞬間堆高。</p>
+</div>
+
+
+<div class="warn">
+  <h3>二｜洗碗機規格</h3>
+  <p>洗碗現在分四段，每一段都卡同一台機器：</p>
+  <table>
+    <thead><tr><th style="width:120px">誰</th><th style="width:124px">時段</th><th style="width:150px">洗什麼</th><th style="width:96px">窗口</th><th>30 件／批・8 分的話</th></tr></thead>
+    <tbody>
+      <tr><td>廚房 K1 K2</td><td class="time">10:00–11:00</td><td>早餐 124 份</td><td class="num">60 分</td><td>機器 40 分，兩人輪流裝卸 → 來得及</td></tr>
+      <tr class="hl"><td><b>P2</b></td><td class="time">17:30–19:00</td><td>下午茶 124 份</td><td class="num">90 分</td><td><b>機器 40 分 ＋ 一人裝卸 40 分 ＝ 80 分，只多 10 分鐘</b></td></tr>
+      <tr><td><b>P2</b></td><td class="time">19:00–20:00</td><td>晚餐第一段 62 份</td><td class="num">60 分</td><td>約 48 分 → 來得及</td></tr>
+      <tr><td>夜班 D1</td><td class="time">22:00–23:30</td><td>晚餐第二段 62 份 ＋ 廚具</td><td class="num">90 分</td><td>約 48 分 ＋ 廚具 40 分 → 來得及</td></tr>
+    </tbody>
+  </table>
+  <p><b>最緊的是 P2 洗下午茶那 90 分鐘。</b>如果洗碗機只有 20 件／批，就要 112 分鐘、差 22 分 —— 那時候要嘛留一部分給夜班，要嘛 P2 再提早半小時。</p>
+  <p>另外確認 <b>回收檯夠不夠大</b>：現在最多只會堆到第二段的 62 份，壓力不大，但下午茶 17:00–17:30 一次收 31 桌時會瞬間堆高。</p>
+</div>
+
+
+<div class="warn">
+  <h3>三｜房內單帳工時：超過 30 分鐘整條線就垮</h3>
+  <p>全場 189 分鐘的試算建立在「房內 27 分鐘」。實際若是 33 分鐘，就超時 15 分；36 分鐘超時 33 分。緩衝只有 21 分鐘。</p>
+  <p><b>開幕前實測 3–5 帳，分開記房內與帳外。</b>這是現在唯一會推翻整張表的變數。</p>
+</div>
+
+<div class="warn">
+  <h3>四｜接駁車規格：一趟載不載得走一帳</h3>
+  <p>5 台 32 分鐘是「一趟一帳」的結果。若要跑兩趟，5 台變 64 分鐘，房務開工延到 12:04，15:00 鐵定收不了工。</p>
+  <p><b>選車時以「4 位客人＋全部行李＋司機」為規格下限。</b></p>
+</div>
+
+<div class="good">
+  <h3>20:00–20:30 的缺口 — 已解決</h3>
+  <p>原本第二段晚餐 19:00–20:30，但 M1–M4 都 20:00 下班，最後 30 分鐘沒人出餐、沒人收桌、廚具沒人搬回廚房，夜班 22:00 才到。</p>
+  <p>工讀生 P1 P2 做到 22:00，<b>20:00–20:30 接手收尾、20:30–22:00 收場並把廚具搬回廚房</b>。中班不必延長工時，夜班 22:00 來的時候餐廳已經乾淨。</p>
+</div>
+
+<div class="warn">
+  <h3>五｜輪休表是範例，實際要疊上個人需求</h3>
+  <p>第二節那張表證明「排得出來」，不是「就照這張排」。真實排班還要吸收請假、連假需求、新人訓練期。<b>只要守住三條規則，形狀就不會壞</b>：① 同一班同一天最多 1 人休 ② 早班全到日與中班全到日錯開 ③ 園藝的 6 個休假日全部落在餘裕日。</p>
+  <p>月底月初跨月時要注意：這張表假設每月都是 30 天、休園 2 天。<b>31 天的月份多出來的那天要指定是 常態日還是 餘裕日</b>，28 天的二月則要少排 2 個休假日。</p>
+</div>
+<div class="modfoot"><button class="pagb" data-m="m9">‹ 上一頁</button><span></span></div>
+</section>
+
+<footer>
+  最終版 · 依 2026-10-15 口述、十輪討論定案 · 22 個職務位（正職 18 ＋ 工讀 4）· 接駁車 5 台（廚房輪值一位車手）· 流程圖上有白點的區塊代表時間沒有餘裕 · 每一項判斷、每一次修正都記在「決策紀錄」· 尚待實測：房內單帳工時、車輛載客規格、洗碗機批次
+</footer>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+(function(){
+  var D = {"b1": {"code": "K1", "role": "廚師・熱檯", "group": "廚房組", "time": "06:30–08:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "早餐熱檯備製", "items": ["接手夜班已起的粥，調味顧火", "蛋：炒蛋或水煮蛋，滿帳備 130 份", "薯條、雞塊：炸檯預熱、分批下鍋", "燒賣或蘿蔔糕（當日擇一）上蒸籠", "當日青菜（高麗菜／花椰菜擇一）汆燙拌油"], "note": null, "tight": "06:30–07:00 只有 K1 K2 兩人，H2 要 07:00 才到；三人全到一個月只有 10 天"}, "b2": {"code": "K1", "role": "廚師・熱檯", "group": "廚房組", "time": "08:00–10:00", "color": "serve", "cat": "出餐／現場服務", "title": "早餐供餐・熱檯補菜", "items": ["盯粥、蛋、炸物、青菜四區", "滿帳 124 人分兩波，08:00 與 09:00 各一次尖峰", "缺料由房務即時通報，不等客人反映"], "note": null, "tight": null}, "b3": {"code": "K1", "role": "廚師・熱檯", "group": "廚房組", "time": "10:00–11:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "收餐・洗碗・歸位", "items": ["熱檯撤下，鍋具進洗碗機", "爐檯與炸檯清潔、濾油", "清點隔日熱食備料"], "note": null, "tight": null}, "b4": {"code": "K1", "role": "廚師・熱檯", "group": "廚房組", "time": "11:00–12:00", "color": "rest", "cat": "用餐", "title": "員工用餐", "items": ["全廚房同時休息，11:00 早餐場已收完"], "note": null, "tight": null}, "b5": {"code": "K1", "role": "廚師・熱檯", "group": "廚房組", "time": "12:00–15:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "下午茶備製 → 晚餐湯底與肉品分裝", "items": ["下午茶單點品項備料、醬料分裝", "晚餐湯底調製（調好滾過即可出餐）", "肉品與海鮮分裝秤重，裝盒上層架", "只分裝不擺盤 — 擺盤 15:00 後由 M2 做"], "note": "蔬菜久置問題就是靠這條解決：廚房只分裝，擺盤往後移。", "tight": null}, "b6": {"code": "K1", "role": "廚師・熱檯", "group": "廚房組", "time": "15:00–15:30", "color": "serve", "cat": "出餐／現場服務", "title": "交接中班", "items": ["向 M2 交代層架位置、份數、湯底狀態", "肉品海鮮庫存點交", "下午茶出餐支援到下班"], "note": null, "tight": null}, "b7": {"code": "K2", "role": "廚師・冷檯", "group": "廚房組", "time": "06:30–08:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "早餐冷檯備製", "items": ["中式小菜：肉鬆、麵筋、脆瓜、花生分盤", "吐司區：吐司上架、烤箱預熱（客人自烤）", "培根、德式香腸煎製", "水果切盤、牛奶冰鎮上架", "茶／咖啡／果汁機器補豆補水（機器供應，不佔人力）"], "note": null, "tight": "同上，開機、取料、起鍋全擠在前 30 分鐘"}, "b8": {"code": "K2", "role": "廚師・冷檯", "group": "廚房組", "time": "08:00–10:00", "color": "serve", "cat": "出餐／現場服務", "title": "早餐供餐・冷檯補給", "items": ["小菜、水果、牛奶補給", "吐司區補料、顧烤箱狀況"], "note": null, "tight": null}, "b9": {"code": "K2", "role": "廚師・冷檯", "group": "廚房組", "time": "10:00–11:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "收餐・擺盤歸位", "items": ["冷藏品回冰，剩料判定留用或報廢", "擺盤器皿洗淨歸位"], "note": null, "tight": null}, "b10": {"code": "K2", "role": "廚師・冷檯", "group": "廚房組", "time": "11:00–12:00", "color": "rest", "cat": "用餐", "title": "員工用餐", "items": ["全廚房同時休息"], "note": null, "tight": null}, "b11": {"code": "K2", "role": "廚師・冷檯", "group": "廚房組", "time": "12:00–15:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "下午茶盤製 → 晚餐蔬菜洗切分裝", "items": ["下午茶盤製（一人一份 set，不是 buffet）", "晚餐蔬菜洗切、分裝入盒、上層架", "標示份數與層架位置，給 M2 接手"], "note": "只分裝不擺盤。擺盤 15:00 後才開始，蔬菜從擺盤到上桌不到 1 小時。", "tight": null}, "b12": {"code": "K2", "role": "廚師・冷檯", "group": "廚房組", "time": "15:00–15:30", "color": "serve", "cat": "出餐／現場服務", "title": "交接中班", "items": ["與 K1 一起向 M2 點交"], "note": null, "tight": null}, "b13": {"code": "K3", "role": "廚師・機動", "group": "廚房組", "time": "06:30–08:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "第三條線：兩檯之間補位", "items": ["哪一檯落後就補哪一檯，三人全到時早餐備製有 270 人分", "三位都是廚師，任何兩人組合都開得起熱檯與冷檯"], "note": "K3 輪休的日子（每月 18 天），兩位在班的廚師各守一檯 —— 這是把助理升為第三位廚師之後才成立的。", "tight": null}, "b14": {"code": "K3", "role": "廚師・機動", "group": "廚房組", "time": "08:00–10:30", "color": "serve", "cat": "出餐／現場服務", "title": "早餐出餐線・補給", "items": ["兩檯之間補給與傳送", "空盤回收、熱檯保溫確認"], "note": "K3 不在時由 K1 K2 兼顧，房務收餐那幾人多跑廚房。", "tight": null}, "b15": {"code": "K3", "role": "廚師・機動", "group": "廚房組", "time": "10:30–11:00", "color": "shuttle", "cat": "接駁載客", "title": "備車・裝載備品", "items": ["1 號車就位", "從 H3 接收該車負責帳號的備品，核對加床"], "note": "這個位子是廚房輪值：K3 休假日由 K1 或 K2 接手，11:00 廚房正值員工餐時段，抽得開。", "tight": null}, "b16": {"code": "K3", "role": "廚師・機動", "group": "廚房組", "time": "11:00–11:30", "color": "shuttle", "cat": "接駁載客", "title": "退房接駁 1 號車", "items": ["載客出場，含驗房約 8 分鐘／趟", "每台跑 4 趟，11:32 全隊收工", "回程把備品送進對應帳"], "note": "廚房每天都派得出一位車手，所以接駁固定 5 台、32 分鐘。", "tight": null}, "b17": {"code": "K3", "role": "廚師・機動", "group": "廚房組", "time": "11:30–12:30", "color": "rest", "cat": "用餐", "title": "員工用餐", "items": ["接駁結束才吃，比另外兩位晚一小時"], "note": null, "tight": null}, "b18": {"code": "K3", "role": "廚師・機動", "group": "廚房組", "time": "12:30–15:30", "color": "prep", "cat": "餐飲備製／洗滌", "title": "下午茶・晚餐備料支援", "items": ["協助 K1 K2 分裝與備料", "下午茶出餐線預備"], "note": null, "tight": null}, "b19": {"code": "H1", "role": "公區廁所", "group": "房務早班", "time": "07:00–08:00", "color": "clean", "cat": "公區清潔", "title": "管理室公共廁所", "items": ["馬桶、洗手檯、地板、鏡面全套", "補衛生紙、洗手乳、垃圾袋"], "note": "客人 08:00 開始用餐會經過，必須 08:00 前完成。", "tight": null}, "b20": {"code": "H1", "role": "公區廁所", "group": "房務早班", "time": "08:00–10:00", "color": "serve", "cat": "出餐／現場服務", "title": "早餐場收餐具・翻桌", "items": ["桌數不足 30 餘桌，吃完一桌收一桌、立刻翻桌", "與 H2、H4、F2 同場"], "note": null, "tight": null}, "b21": {"code": "H1", "role": "公區廁所", "group": "房務早班", "time": "10:00–10:30", "color": "clean", "cat": "公區清潔", "title": "早餐結束，整理餐廳", "items": ["四人同時：擦桌、掃地、拖地、椅子歸位", "H1 H2 H4 ＋ 櫃檯 F2"], "note": null, "tight": null}, "b22": {"code": "H1", "role": "公區廁所", "group": "房務早班", "time": "10:30–11:00", "color": "shuttle", "cat": "接駁載客", "title": "備車・裝載備品", "items": ["2 號車就位", "裝該車帳號的備品"], "note": null, "tight": null}, "b23": {"code": "H1", "role": "公區廁所", "group": "房務早班", "time": "11:00–11:30", "color": "shuttle", "cat": "接駁載客", "title": "退房接駁 2 號車", "items": ["載客出場，回程載備品進場", "5 台車 4 趟，11:32 收工"], "note": null, "tight": null}, "b24": {"code": "H1", "role": "公區廁所", "group": "房務早班", "time": "11:30–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・兩人一組一帳到底", "items": ["房內：換床 4 床 9 分、衛浴 9 分、地板 5 分、備品與垃圾 4 分", "帳外：垃圾桶、桌椅、洗腳池沖洗（採光罩看輪值）", "一帳房內＋帳外做完才換下一帳", "每帳約 18.2 分鐘，每組約 10 帳"], "note": null, "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b25": {"code": "H1", "role": "公區廁所", "group": "房務早班", "time": "15:00–16:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶出餐支援", "items": ["單點出餐，櫃檯點單後一份一份送", "早班四人同場，人力最足的一小時"], "note": null, "tight": null}, "b26": {"code": "H2", "role": "餐廳·廚房", "group": "房務早班", "time": "07:00–08:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "餐廳擺桌 → 轉入廚房支援", "items": ["夜班昨晚已清潔，只需擺桌，約 15 分鐘", "其餘 45 分鐘進廚房支援備餐"], "note": "這是早餐備製每天唯一的外援。7 人日才多一個 H4。", "tight": null}, "b27": {"code": "H2", "role": "餐廳·廚房", "group": "房務早班", "time": "08:00–10:00", "color": "serve", "cat": "出餐／現場服務", "title": "收餐具・通報補菜", "items": ["收餐具、翻桌", "哪一道快見底立刻跟廚房講，不等客人反映"], "note": null, "tight": null}, "b28": {"code": "H2", "role": "餐廳·廚房", "group": "房務早班", "time": "10:00–10:30", "color": "clean", "cat": "公區清潔", "title": "整理餐廳", "items": ["與 H1 H4 F2 四人同時"], "note": null, "tight": null}, "b29": {"code": "H2", "role": "餐廳·廚房", "group": "房務早班", "time": "10:30–11:00", "color": "shuttle", "cat": "接駁載客", "title": "備車・裝載備品", "items": ["3 號車就位"], "note": null, "tight": null}, "b30": {"code": "H2", "role": "餐廳·廚房", "group": "房務早班", "time": "11:00–11:30", "color": "shuttle", "cat": "接駁載客", "title": "退房接駁 3 號車", "items": ["載客出場，回程載備品"], "note": null, "tight": null}, "b31": {"code": "H2", "role": "餐廳·廚房", "group": "房務早班", "time": "11:30–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・兩人一組一帳到底", "items": ["與中班配對", "一帳房內＋帳外做完才換下一帳"], "note": null, "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b32": {"code": "H2", "role": "餐廳·廚房", "group": "房務早班", "time": "15:00–16:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶出餐支援", "items": [], "note": null, "tight": null}, "b33": {"code": "H3", "role": "備品專責", "group": "房務早班", "time": "07:00–08:00", "color": "clean", "cat": "公區清潔", "title": "小動物區整理", "items": ["清糞、換水、餵食", "圍欄周邊整理"], "note": "客人退房前會去玩，必須一早就乾淨。", "tight": null}, "b34": {"code": "H3", "role": "備品專責", "group": "房務早班", "time": "08:00–11:00", "color": "room", "cat": "房務（房內／備品）", "title": "全職包房務備品（60+ 組）", "items": ["床包、枕套、被套、毛巾、浴巾依帳號分組", "加床帳另外標示", "備品、盥洗包、礦泉水一併配入", "10:30 把包好的備品分配到 5 台車上"], "note": "F2 接手餐廳後釋出的人力。11:00 前必須包完，接駁車回程才能直接載進場。", "tight": null}, "b35": {"code": "H3", "role": "備品專責", "group": "房務早班", "time": "11:00–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・兩人一組一帳到底", "items": ["不用開車，11:00 就能跟中班配對開工"], "note": null, "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b36": {"code": "H3", "role": "備品專責", "group": "房務早班", "time": "15:00–16:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶出餐支援", "items": [], "note": null, "tight": null}, "b37": {"code": "H4", "role": "機動", "group": "房務早班", "time": "07:00–08:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "廚房備餐支援", "items": ["把早餐備製從 2 人拉到 4 人（含 H2）"], "note": "只有房務 7 人日（每月 8 天）才有這個人。其餘 20 天廚房只有 H2 支援。", "tight": null}, "b38": {"code": "H4", "role": "機動", "group": "房務早班", "time": "08:00–10:00", "color": "serve", "cat": "出餐／現場服務", "title": "早餐場收餐具", "items": [], "note": null, "tight": null}, "b39": {"code": "H4", "role": "機動", "group": "房務早班", "time": "10:00–10:30", "color": "clean", "cat": "公區清潔", "title": "整理餐廳", "items": [], "note": null, "tight": null}, "b40": {"code": "H4", "role": "機動", "group": "房務早班", "time": "10:30–11:00", "color": "room", "cat": "房務（房內／備品）", "title": "支援包備品收尾", "items": ["幫 H3 把最後幾組包完、上車"], "note": null, "tight": null}, "b41": {"code": "H4", "role": "機動", "group": "房務早班", "time": "11:00–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・兩人一組一帳到底", "items": ["在班時成為第 4 組", "4 組作業全場只要 141 分鐘，13:51 完工"], "note": "園藝休假日、割草日都該排在有 H4 的 7 人日。", "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b42": {"code": "H4", "role": "機動", "group": "房務早班", "time": "15:00–16:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶出餐支援", "items": [], "note": null, "tight": null}, "b43": {"code": "F1", "role": "櫃檯常駐", "group": "櫃檯早班", "time": "08:00–11:00", "color": "desk", "cat": "櫃檯", "title": "櫃檯接待・退房結帳", "items": ["F2 去餐廳的 08:00–10:00 由 F1 獨守", "此時客人在吃早餐、退房 11:00 才開始，單人足夠", "10:00 F2 回來一起應付退房潮"], "note": "F1 全程不能離開櫃檯，這是 F2 能去餐廳的前提。", "tight": null}, "b44": {"code": "F1", "role": "櫃檯常駐", "group": "櫃檯早班", "time": "11:00–15:00", "color": "desk", "cat": "櫃檯", "title": "櫃檯常駐・訂房客訴", "items": ["接駁期間唯一留守的人", "11:00 向車隊確認場內淨空（園藝要開機具）", "訂房、客訴、電話"], "note": null, "tight": null}, "b45": {"code": "F1", "role": "櫃檯常駐", "group": "櫃檯早班", "time": "15:00–17:00", "color": "desk", "cat": "櫃檯", "title": "check-in 尖峰・下午茶點單", "items": ["辦理入住 → 行李寄放 → 引導去吃下午茶", "吃完才載進房，避免跑兩趟", "下午茶點單轉給餐廳"], "note": null, "tight": null}, "b46": {"code": "F2", "role": "機動", "group": "櫃檯早班", "time": "08:00–10:00", "color": "serve", "cat": "出餐／現場服務", "title": "到餐廳支援收餐具・翻桌", "items": ["櫃檯與餐廳相鄰，有客人來兩步就回得去", "收餐具、翻桌，與房務三人同場"], "note": "釋出的房務人力（H3）去全職包備品。這不增加打掃工時 — 打掃本來就 11:00 才開始。", "tight": null}, "b47": {"code": "F2", "role": "機動", "group": "櫃檯早班", "time": "10:00–10:30", "color": "clean", "cat": "公區清潔", "title": "整理餐廳", "items": [], "note": null, "tight": null}, "b48": {"code": "F2", "role": "機動", "group": "櫃檯早班", "time": "10:30–11:00", "color": "shuttle", "cat": "接駁載客", "title": "備車", "items": ["4 號車就位"], "note": null, "tight": null}, "b49": {"code": "F2", "role": "機動", "group": "櫃檯早班", "time": "11:00–11:30", "color": "shuttle", "cat": "接駁載客", "title": "退房接駁 4 號車", "items": [], "note": null, "tight": null}, "b50": {"code": "F2", "role": "機動", "group": "櫃檯早班", "time": "11:30–15:00", "color": "desk", "cat": "櫃檯", "title": "回櫃檯・退房結帳尾段", "items": ["退房結帳收尾、訂房", "與 F1 兩人顧櫃檯"], "note": null, "tight": null}, "b51": {"code": "F2", "role": "機動", "group": "櫃檯早班", "time": "15:00–17:00", "color": "desk", "cat": "櫃檯", "title": "check-in・下午茶點單", "items": [], "note": null, "tight": null}, "b52": {"code": "PM1", "role": "替補工讀", "group": "櫃檯早班", "time": "08:00–10:00", "color": "serve", "cat": "出餐／現場服務", "title": "頂替 F2 的餐廳支援", "items": ["櫃檯早班單人日，留守那人走不開，餐廳支援由工讀生頂", "收餐具、翻桌"], "note": "只在櫃檯早班單人日出勤：1、4、6、8、11、13、17、20、22、24、27、28 日，每月 12 天。", "tight": null}, "b53": {"code": "PM1", "role": "替補工讀", "group": "櫃檯早班", "time": "10:00–10:30", "color": "clean", "cat": "公區清潔", "title": "整理餐廳", "items": [], "note": null, "tight": null}, "b54": {"code": "PM1", "role": "替補工讀", "group": "櫃檯早班", "time": "10:30–11:00", "color": "shuttle", "cat": "接駁載客", "title": "備車", "items": ["4 號車就位"], "note": null, "tight": null}, "b55": {"code": "PM1", "role": "替補工讀", "group": "櫃檯早班", "time": "11:00–11:30", "color": "shuttle", "cat": "接駁載客", "title": "退房接駁 4 號車", "items": ["沒有他，接駁從 5 台掉到 4 台、32 分鐘變 40 分鐘"], "note": "徵人條件：必須有駕照、能開場內接駁車。這是這個職位唯一的硬門檻。", "tight": null}, "b56": {"code": "PM1", "role": "替補工讀", "group": "櫃檯早班", "time": "11:30–13:00", "color": "desk", "cat": "櫃檯", "title": "守櫃檯，讓留守那人去吃飯", "items": ["12:00–13:00 讓 F1（或 F2）完整吃一小時", "13:00 晚班到崗接手，無縫交班"], "note": "這解決了單人日「9 小時不能離開、沒人換手吃飯」的問題。", "tight": null}, "b57": {"code": "G1", "role": "園藝", "group": "園藝外場", "time": "07:00–09:00", "color": "garden", "cat": "園藝", "title": "晨間安靜作業", "items": ["外場巡場、落葉清掃", "公共垃圾桶、步道清理"], "note": "禁用任何機具。客人還在睡或吃早餐，07:00 開割草機會被客訴。", "tight": null}, "b58": {"code": "G1", "role": "園藝", "group": "園藝外場", "time": "09:00–11:00", "color": "garden", "cat": "園藝", "title": "分區輪灌・花圃", "items": ["全場分 5 區輪灌，每天 1 區，雨天跳過", "花圃、盆栽約 30 分鐘"], "note": "仍然禁用機具，客人還在場。", "tight": null}, "b59": {"code": "G1", "role": "園藝", "group": "園藝外場", "time": "11:00–11:30", "color": "shuttle", "cat": "接駁載客", "title": "退房接駁 5 號車", "items": ["第 5 台車，讓接駁從 40 分鐘縮到 32 分鐘"], "note": null, "tight": null}, "b60": {"code": "G1", "role": "園藝", "group": "園藝外場", "time": "11:30–14:00", "color": "outdoor", "cat": "帳外（洗腳池·垃圾桶·採光罩·桌椅）", "title": "帳外專責 13 帳", "items": ["洗腳池、垃圾桶、採光罩、桌椅", "每帳約 11.3 分鐘，150 分鐘做 13 帳"], "note": "這 13 帳是房務能否 15:00 前收工的關鍵。割草日改做割草，那 13 帳要還給房務組別 — 所以割草日排在 7 人日。", "tight": null}, "b61": {"code": "G1", "role": "園藝", "group": "園藝外場", "time": "14:00–15:00", "color": "spray", "cat": "園藝（機具／藥劑）", "title": "機具保養・備料", "items": ["機具清潔、刀具研磨", "隔天備料", "藥劑歸位上鎖、噴藥紀錄簽核"], "note": "噴藥只排在每月 2 天休園日 — 藥劑再進入間隔 4–24 小時，15:00 就 check-in，平日間隔不夠。", "tight": null}, "b62": {"code": "G1", "role": "園藝", "group": "園藝外場", "time": "15:00–16:00", "color": "garden", "cat": "園藝", "title": "收工具・最後巡場", "items": ["客人開始進場，所有機具收起", "最後巡場，確認沒有工具或藥劑留在外場"], "note": null, "tight": null}, "b63": {"code": "M1", "role": "下午茶主責", "group": "房務中班", "time": "11:00–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・兩人一組一帳到底", "items": ["11:00 一到就配對開掃，不再先單人掃帳外", "11:00–11:30 與 H3（包完備品）配對，全場兩組", "11:30 早班接駁回來，補成三組", "一帳房內＋帳外做完才換下一帳"], "note": "中班從上班第一分鐘就在掃房，負責的帳數比原案多。", "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b64": {"code": "M1", "role": "下午茶主責", "group": "房務中班", "time": "15:00–16:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶出餐", "items": ["早班四人同場，人力最足的一小時"], "note": null, "tight": null}, "b65": {"code": "M1", "role": "下午茶主責", "group": "房務中班", "time": "16:00–17:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶主責（尾段）", "items": ["早班 16:00 下班，與 M4 兩人撐到 17:00 下午茶結束", "同時間 P1 在收桌"], "note": null, "tight": null}, "b66": {"code": "M1", "role": "下午茶主責", "group": "房務中班", "time": "17:00–17:30", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶收場 ＋ 晚餐開場", "items": ["與 M4、P1、P2 四人一起：收完剩下的桌、翻成晚餐場", "只有 30 分鐘，17:30 第一段就開餐"], "note": null, "tight": "下午茶收場與晚餐開場擠在同 30 分鐘"}, "b67": {"code": "M1", "role": "下午茶主責", "group": "房務中班", "time": "17:30–20:00", "color": "serve", "cat": "出餐／現場服務", "title": "晚餐出餐（兩段制）", "items": ["第一段 17:30–19:00、第二段 19:00–20:30", "訂房時已 email 分配時段，現場不改", "與工讀生 P1 P2 同場"], "note": "中班 20:00 下班，最後 30 分鐘交給工讀生 P1 P2 接手。", "tight": null}, "b68": {"code": "M2", "role": "晚餐擺盤", "group": "房務中班", "time": "11:00–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・兩人一組一帳到底", "items": ["11:00 與 H3 配對開掃，11:30 早班歸隊補成三組"], "note": null, "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b69": {"code": "M2", "role": "晚餐擺盤", "group": "房務中班", "time": "15:00–17:30", "color": "prep", "cat": "餐飲備製／洗滌", "title": "晚餐擺盤（接廚房分裝）", "items": ["接手 K2 分裝好的蔬菜，約 60 盤", "海鮮與肉類現點現擺，不預擺", "備餐線整理"], "note": "蔬菜從擺盤到上桌不到 1 小時。原本廚房 14:30 就擺、放到 17:30 的問題靠這段解決。", "tight": null}, "b70": {"code": "M2", "role": "晚餐擺盤", "group": "房務中班", "time": "17:30–20:00", "color": "serve", "cat": "出餐／現場服務", "title": "晚餐出餐", "items": [], "note": null, "tight": null}, "b71": {"code": "M3", "role": "載客·收桌", "group": "房務中班", "time": "11:00–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・兩人一組一帳到底", "items": ["11:00 與 H3 配對開掃，11:30 早班歸隊補成三組"], "note": null, "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b72": {"code": "M3", "role": "載客·收桌", "group": "房務中班", "time": "15:00–17:00", "color": "shuttle", "cat": "接駁載客", "title": "載客進房・行李", "items": ["客人吃完下午茶才進房（學山區做法）", "與 M4 兩台車"], "note": null, "tight": null}, "b73": {"code": "M3", "role": "載客·收桌", "group": "房務中班", "time": "17:00–17:30", "color": "prep", "cat": "餐飲備製／洗滌", "title": "晚餐前置", "items": [], "note": null, "tight": null}, "b74": {"code": "M3", "role": "載客·收桌", "group": "房務中班", "time": "17:30–20:00", "color": "serve", "cat": "出餐／現場服務", "title": "晚餐出餐・收桌", "items": [], "note": null, "tight": null}, "b75": {"code": "M4", "role": "機動", "group": "房務中班", "time": "11:00–15:00", "color": "room", "cat": "房務（房內／備品）", "title": "房務・第 4 組", "items": ["在班時 11:00 就有三組，全場提早到 13:40 完工"], "note": null, "tight": "完工 14:34，離 15:00 只有 26 分鐘，而且壓在未實測的房內 27 分假設上"}, "b76": {"code": "M4", "role": "機動", "group": "房務中班", "time": "15:00–16:00", "color": "shuttle", "cat": "接駁載客", "title": "載客進房支援", "items": ["與 M3 兩台車"], "note": null, "tight": null}, "b77": {"code": "M4", "role": "機動", "group": "房務中班", "time": "16:00–17:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶尾段第二人", "items": ["有他 M2 才能專心擺 60 盤"], "note": null, "tight": null}, "b78": {"code": "M4", "role": "機動", "group": "房務中班", "time": "17:00–17:30", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶收場 ＋ 晚餐開場", "items": ["與 M1、P1、P2 四人一起收桌翻場"], "note": null, "tight": "下午茶收場與晚餐開場擠在同 30 分鐘"}, "b79": {"code": "M4", "role": "機動", "group": "房務中班", "time": "17:30–20:00", "color": "serve", "cat": "出餐／現場服務", "title": "晚餐出餐", "items": [], "note": null, "tight": null}, "b80": {"code": "N1", "role": "櫃檯常駐", "group": "櫃檯晚班", "time": "13:00–15:00", "color": "desk", "cat": "櫃檯", "title": "交接・check-in 準備", "items": ["接早班的未進房帳號、特殊需求", "核對晚餐時段分配表"], "note": null, "tight": null}, "b81": {"code": "N1", "role": "櫃檯常駐", "group": "櫃檯晚班", "time": "15:00–17:00", "color": "desk", "cat": "櫃檯", "title": "check-in 尖峰", "items": ["與 F1 F2 N2 四人同場"], "note": null, "tight": null}, "b82": {"code": "N1", "role": "櫃檯常駐", "group": "櫃檯晚班", "time": "17:00–22:00", "color": "desk", "cat": "櫃檯", "title": "櫃檯常駐", "items": ["酒吧 19:00 開了也至少留 1 人在櫃檯"], "note": null, "tight": null}, "b83": {"code": "N2", "role": "酒吧", "group": "櫃檯晚班", "time": "13:00–15:00", "color": "bar", "cat": "酒吧", "title": "交接・酒吧備檯", "items": [], "note": null, "tight": null}, "b84": {"code": "N2", "role": "酒吧", "group": "櫃檯晚班", "time": "15:00–17:00", "color": "desk", "cat": "櫃檯", "title": "check-in・下午茶點單", "items": [], "note": null, "tight": null}, "b85": {"code": "N2", "role": "酒吧", "group": "櫃檯晚班", "time": "17:00–19:00", "color": "shuttle", "cat": "接駁載客", "title": "載客進房支援・酒吧開檯準備", "items": [], "note": null, "tight": null}, "b86": {"code": "N2", "role": "酒吧", "group": "櫃檯晚班", "time": "19:00–22:00", "color": "bar", "cat": "酒吧", "title": "酒吧營運", "items": ["晚間客人找人一律到酒吧", "櫃檯不負責洗碗"], "note": "單人日由替補工讀 PM2 顧櫃檯，酒吧與櫃檯才能同時有人。", "tight": null}, "b87": {"code": "PM2", "role": "替補工讀", "group": "櫃檯晚班", "time": "19:00–22:00", "color": "desk", "cat": "櫃檯", "title": "櫃檯晚班單人日的櫃檯值守", "items": ["只在櫃檯晚班單人日出勤：2、4、7、9、12、14、19、21、24、26、29、30 日，每月 12 天", "做的是備品需求、諮詢、轉達、隔天退房說明", "客訴、退費、緊急狀況一律對講機呼叫正職"], "note": "正職在酒吧（距離遠），調酒與結帳留給他；工讀顧櫃檯讓兩邊同時有人。取代原本的 N3 正職。", "tight": null}, "b88": {"code": "P1", "role": "外場機動", "group": "工讀生機動組", "time": "16:00–17:00", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶收桌（邊吃邊收）", "items": ["客人陸續離席，收一桌清一桌", "餐具直接送回收檯，不洗 —— 夜班統一處理"], "note": null, "tight": null}, "b89": {"code": "P1", "role": "外場機動", "group": "工讀生機動組", "time": "17:00–17:30", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶收場 ＋ 翻成晚餐場", "items": ["與 M1 M4 P2 四人一起", "收桌 62 分 ＋ 翻場 20 分 ＝ 82 人分，四人 30 分鐘 ＝ 120 人分 → 餘裕 38 分"], "note": null, "tight": "下午茶收場與晚餐開場擠在同 30 分鐘"}, "b90": {"code": "P1", "role": "外場機動", "group": "工讀生機動組", "time": "17:30–19:00", "color": "serve", "cat": "出餐／現場服務", "title": "晚餐第一段出餐", "items": ["與中班 M1–M4 同場"], "note": null, "tight": null}, "b91": {"code": "P1", "role": "外場機動", "group": "工讀生機動組", "time": "19:00–20:00", "color": "serve", "cat": "出餐／現場服務", "title": "第一段收桌 ＋ 第二段出餐", "items": ["第一段 62 人、約 16 桌，收桌約 32 分鐘（與 M3 一起）", "同時支援第二段出餐", "P2 這小時在洗第一段的餐具"], "note": null, "tight": null}, "b92": {"code": "P1", "role": "外場機動", "group": "工讀生機動組", "time": "20:00–20:30", "color": "serve", "cat": "出餐／現場服務", "title": "第二段晚餐收尾（中班已下班）", "items": ["M1–M4 都 20:00 下班，最後 30 分鐘由工讀撐", "出餐收尾、送客、收桌"], "note": "這是原本那個「20:00–20:30 沒有接手的人」的缺口。", "tight": null}, "b93": {"code": "P1", "role": "外場機動", "group": "工讀生機動組", "time": "20:30–22:00", "color": "clean", "cat": "公區清潔", "title": "餐廳收場（與 P2 兩人）", "items": ["第二段收桌 32 分 ＋ 擦桌掃拖 30 分 ＋ 搬廚具 20 分 ＝ 82 分鐘", "窗口 90 分鐘，一個人只多 8 分鐘；兩個人才有餘裕"], "note": null, "tight": null}, "b94": {"code": "P2", "role": "內場支援", "group": "工讀生機動組", "time": "17:00–17:30", "color": "serve", "cat": "出餐／現場服務", "title": "下午茶收場 ＋ 翻成晚餐場", "items": ["與 M1 M4 P1 四人一起", "四人 120 人分 vs 工作 82 人分 → 餘裕 38 分鐘"], "note": null, "tight": "下午茶收場與晚餐開場擠在同 30 分鐘"}, "b95": {"code": "P2", "role": "內場支援", "group": "工讀生機動組", "time": "17:30–19:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "當場洗下午茶 124 份", "items": ["窗口 90 分鐘。30 件／批・8 分的機器約需 80 分鐘，剛好", "洗完歸位，晚餐第二段還能用"], "note": "下午茶餐具不必堆到半夜。加上 19:00–20:00 再洗掉第一段，夜班只剩第二段的 62 份。", "tight": "124 份要 80 分鐘，窗口 90 分鐘，只多 10 分鐘"}, "b96": {"code": "P2", "role": "內場支援", "group": "工讀生機動組", "time": "19:00–20:00", "color": "prep", "cat": "餐飲備製／洗滌", "title": "洗晚餐第一段 62 份", "items": ["第一段 62 人、約 16 桌，P1 與 M3 收桌，P2 接手洗", "62 份 ＝ 3 批、約 48 分鐘，60 分窗口內做得完", "洗完歸位，第二段的餐具就不會不夠"], "note": "多洗這一段，夜班只剩第二段的 62 份 ＋ 廚具，22:00–23:30 就收工。", "tight": null}, "b97": {"code": "P2", "role": "內場支援", "group": "工讀生機動組", "time": "20:00–20:30", "color": "serve", "cat": "出餐／現場服務", "title": "第二段晚餐收尾（與 P1）", "items": [], "note": null, "tight": null}, "b98": {"code": "P2", "role": "內場支援", "group": "工讀生機動組", "time": "20:30–22:00", "color": "clean", "cat": "公區清潔", "title": "餐廳收場・廚具搬回廚房", "items": ["與 P1 分工：一人收桌擦掃、一人搬廚具並整理回收檯", "把第二段的 62 份髒餐具分類堆好，夜班來接手"], "note": "夜班只有 1 人，回收檯整理得好不好直接決定他洗得完不完。", "tight": null}, "b99": {"code": "D1", "role": "夜間值班", "group": "夜班", "time": "22:00–23:30", "color": "prep", "cat": "餐飲備製／洗滌", "title": "洗晚餐第二段 62 份與廚具", "items": ["晚餐分兩段，每段約 62 人 —— 全天晚餐只用 124 份", "第一段的 62 份 P2 已在 19:00–20:00 洗掉", "62 份 ＝ 3 批約 48 分 ＋ 廚具 40 分"], "note": "工讀已收桌、搬廚具、分類堆好，夜班直接開洗，約 1.5 小時。", "tight": null}, "b100": {"code": "D1", "role": "夜間值班", "group": "夜班", "time": "23:30–06:00", "color": "night", "cat": "夜間值班", "title": "夜間值班・巡場", "items": ["定時巡場", "夜間客人需求應對"], "note": null, "tight": null}, "b101": {"code": "D1", "role": "夜間值班", "group": "夜班", "time": "06:00–06:30", "color": "prep", "cat": "餐飲備製／洗滌", "title": "開機預熱・起粥・交接廚房", "items": ["設備預熱，把早餐備製的前段先做掉", "起粥"], "note": "廚師 06:30 到崗才能下班。這 30 分鐘是補早餐人力不足的關鍵。", "tight": null}}, L = {"K1": {"role": "廚師・熱檯", "shift": "06:30–15:30", "group": "廚房組", "ids": ["b1", "b2", "b3", "b4", "b5", "b6"], "sc": "ABC"}, "K2": {"role": "廚師・冷檯", "shift": "06:30–15:30", "group": "廚房組", "ids": ["b7", "b8", "b9", "b10", "b11", "b12"], "sc": "ABC"}, "K3": {"role": "廚師・機動", "shift": "06:30–15:30", "group": "廚房組", "ids": ["b13", "b14", "b15", "b16", "b17", "b18"], "sc": "ABC"}, "H1": {"role": "公區廁所", "shift": "07:00–16:00", "group": "房務早班", "ids": ["b19", "b20", "b21", "b22", "b23", "b24", "b25"], "sc": "ABC"}, "H2": {"role": "餐廳·廚房", "shift": "07:00–16:00", "group": "房務早班", "ids": ["b26", "b27", "b28", "b29", "b30", "b31", "b32"], "sc": "ABC"}, "H3": {"role": "備品專責", "shift": "07:00–16:00", "group": "房務早班", "ids": ["b33", "b34", "b35", "b36"], "sc": "ABC"}, "H4": {"role": "機動", "shift": "07:00–16:00", "group": "房務早班", "ids": ["b37", "b38", "b39", "b40", "b41", "b42"], "sc": "B"}, "F1": {"role": "櫃檯常駐", "shift": "08:00–17:00", "group": "櫃檯早班", "ids": ["b43", "b44", "b45"], "sc": "ABC"}, "F2": {"role": "機動", "shift": "08:00–17:00", "group": "櫃檯早班", "ids": ["b46", "b47", "b48", "b49", "b50", "b51"], "sc": "ABC"}, "PM1": {"role": "替補工讀", "shift": "08:00–13:00", "group": "櫃檯早班", "ids": ["b52", "b53", "b54", "b55", "b56"], "sc": "ABC"}, "G1": {"role": "園藝", "shift": "07:00–16:00", "group": "園藝外場", "ids": ["b57", "b58", "b59", "b60", "b61", "b62"], "sc": "ABC"}, "M1": {"role": "下午茶主責", "shift": "11:00–20:00", "group": "房務中班", "ids": ["b63", "b64", "b65", "b66", "b67"], "sc": "ABC"}, "M2": {"role": "晚餐擺盤", "shift": "11:00–20:00", "group": "房務中班", "ids": ["b68", "b69", "b70"], "sc": "ABC"}, "M3": {"role": "載客·收桌", "shift": "11:00–20:00", "group": "房務中班", "ids": ["b71", "b72", "b73", "b74"], "sc": "ABC"}, "M4": {"role": "機動", "shift": "11:00–20:00", "group": "房務中班", "ids": ["b75", "b76", "b77", "b78", "b79"], "sc": "C"}, "N1": {"role": "櫃檯常駐", "shift": "13:00–22:00", "group": "櫃檯晚班", "ids": ["b80", "b81", "b82"], "sc": "ABC"}, "N2": {"role": "酒吧", "shift": "13:00–22:00", "group": "櫃檯晚班", "ids": ["b83", "b84", "b85", "b86"], "sc": "ABC"}, "PM2": {"role": "替補工讀", "shift": "19:00–22:00", "group": "櫃檯晚班", "ids": ["b87"], "sc": "ABC"}, "P1": {"role": "外場機動", "shift": "16:00–22:00", "group": "工讀生機動組", "ids": ["b88", "b89", "b90", "b91", "b92", "b93"], "sc": "ABC"}, "P2": {"role": "內場支援", "shift": "17:00–22:00", "group": "工讀生機動組", "ids": ["b94", "b95", "b96", "b97", "b98"], "sc": "ABC"}, "D1": {"role": "夜間值班", "shift": "22:00–06:30", "group": "夜班", "ids": ["b99", "b100", "b101"], "sc": "ABC"}}, SC = {"A": {"name": "常態日", "crew": "房務 6 人・3 組", "days": "20 天／月", "end": "14:34", "desc": "最常見的日子。房務早班與中班各有 1 人休假，6 個人剛好編成 3 組。11:00 由 H3 與中班兩人配成兩組開掃，11:30 早班接駁回來補成三組。早上沒有 H4，廚房備餐只有 H2 一個外援。"}, "B": {"name": "餘裕日・早班滿", "crew": "房務 7 人・3 組＋1 單人", "days": "4 天／月", "end": "13:59", "desc": "房務早班 4 人全到（H4 在班）。07:00–08:00 多一個人支援廚房備餐，11:00 起多一條人力。七個人編成三組＋一個單人，那個單人專做帳外、沒有配對損耗，所以比常態日早 35 分鐘收工。"}, "C": {"name": "餘裕日・中班滿", "crew": "房務 7 人・3 組＋1 單人", "days": "4 天／月", "end": "13:59", "desc": "房務中班 4 人全到（M4 在班）。下午茶尾段有第二個人，M2 才能專心擺 60 盤。早上與常態日相同（沒有 H4），11:00 起七人編成三組＋一個單人。"}};
+  var panel = document.getElementById('bpanel'), bar = document.getElementById('scbar');
+  if(!panel) return;
+  var cur = 'A';
+  function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+  function clearSel(){ document.querySelectorAll('.b.sel').forEach(function(x){x.classList.remove('sel')}); }
+  function reset(){ clearSel(); panel.className='bpanel empty';
+    panel.innerHTML='<div class="bp-hint">點上面任一個工作方塊看細節，或點左側的人員代號看他一整天。</div>'; }
+
+  function setSc(k){
+    cur = k;
+    document.querySelectorAll('.sctab').forEach(function(t){ t.classList.toggle('on', t.dataset.goSc===k); });
+    document.querySelectorAll('[data-sc]').forEach(function(el){
+      el.classList.toggle('hide', el.dataset.sc.indexOf(k)<0);
+    });
+    var s = SC[k];
+    bar.innerHTML = '<span class="k">房務在班 <b>'+esc(s.crew)+'</b></span>'
+      + '<span class="k">出現頻率 <b>'+esc(s.days)+'</b></span>'
+      + '<span class="k">房務完工 <b>'+esc(s.end)+'</b></span>'
+      + '<p>'+esc(s.desc)+'</p>';
+    reset();
+  }
+
+  function showBlock(id){
+    var d = D[id]; if(!d) return;
+    clearSel();
+    var el = document.querySelector('.b[data-id="'+id+'"]');
+    if(el) el.classList.add('sel');
+    var h = '<div class="bp-top"><span class="bp-cat c-'+d.color+'">'+esc(d.cat)+'</span>'
+      + '<span class="bp-who">'+esc(d.group)+' · '+esc(d.code)+' '+esc(d.role)+'</span>'
+      + '<span class="bp-time">'+esc(d.time)+'</span></div><h4>'+esc(d.title)+'</h4>';
+    if(d.items && d.items.length) h += '<ul>'+d.items.map(function(i){return '<li>'+esc(i)+'</li>'}).join('')+'</ul>';
+    if(d.tight) h += '<p class="bp-tight"><b>時間吃緊</b>　'+esc(d.tight)+'</p>';
+    if(d.note) h += '<p class="bp-note">'+esc(d.note)+'</p>';
+    panel.className='bpanel'; panel.innerHTML=h;
+  }
+
+  function showLane(code){
+    var l = L[code]; if(!l) return;
+    clearSel();
+    l.ids.forEach(function(i){ var e=document.querySelector('.b[data-id="'+i+'"]'); if(e) e.classList.add('sel'); });
+    var h = '<div class="bp-top"><span class="bp-who">'+esc(l.group)+'</span>'
+      + '<span class="bp-time">'+esc(l.shift)+'</span></div>'
+      + '<h4>'+esc(code)+'　'+esc(l.role)+'　一整天</h4><ul class="bp-day">';
+    l.ids.forEach(function(i){ var d=D[i];
+      h += '<li><b>'+esc(d.time)+'</b><a data-go="'+i+'">'+esc(d.title)+'</a></li>'; });
+    panel.className='bpanel'; panel.innerHTML = h+'</ul>';
+  }
+
+  document.querySelectorAll('.b[data-id]').forEach(function(el){
+    el.addEventListener('click', function(){ showBlock(el.dataset.id); });
+    el.addEventListener('keydown', function(e){
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); showBlock(el.dataset.id); } });
+  });
+  document.querySelectorAll('button.lab[data-lane]').forEach(function(el){
+    el.addEventListener('click', function(){ showLane(el.dataset.lane); }); });
+  document.querySelectorAll('.sctab').forEach(function(t){
+    t.addEventListener('click', function(){ setSc(t.dataset.goSc); }); });
+  panel.addEventListener('click', function(e){
+    var a = e.target.closest('[data-go]'); if(a) showBlock(a.dataset.go); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') reset(); });
+  setSc('A');
+})();
+</script>
+<script id="modnav-js">
+(function(){
+  document.body.classList.add('js');
+  var mods=[].slice.call(document.querySelectorAll('.mod'));
+  var navs=[].slice.call(document.querySelectorAll('.navb'));
+  if(!mods.length) return;
+  function show(id, push){
+    var hit=false;
+    mods.forEach(function(m){ var on=m.id===id; m.classList.toggle('on',on); if(on) hit=true; });
+    if(!hit){ mods[0].classList.add('on'); id=mods[0].id; }
+    navs.forEach(function(b){ b.classList.toggle('on', b.dataset.m===id); });
+    if(push && location.hash!=='#'+id) history.replaceState(null,'','#'+id);
+    window.scrollTo(0,0);
+  }
+  document.addEventListener('click', function(e){
+    var b=e.target.closest('[data-m]');
+    if(b){ e.preventDefault(); show(b.dataset.m, true); }
+  });
+  window.addEventListener('hashchange', function(){ show(location.hash.slice(1), false); });
+  show(location.hash.slice(1) || 'm1', false);
+})();
+</script>
+</body>
+</html>
